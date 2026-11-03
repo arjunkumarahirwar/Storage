@@ -47,7 +47,10 @@ export function useAuth(): AuthState {
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession)
       if (nextSession) {
-        void checkAdmin()
+        // Defer: Supabase warns against calling its API synchronously inside this callback.
+        window.setTimeout(() => {
+          void checkAdmin()
+        }, 0)
       } else {
         setIsAdmin(false)
       }

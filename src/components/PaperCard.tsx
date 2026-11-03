@@ -143,7 +143,7 @@ export function PaperCard({
           href={viewUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl bg-brand-600 px-3 text-[12.5px] font-semibold text-white transition hover:bg-brand-700 active:scale-[0.98]"
+          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-brand-600 px-2.5 text-[12.5px] font-semibold text-white sm:px-3 transition hover:bg-brand-700 active:scale-[0.98]"
         >
           <ExternalIcon className="h-4 w-4" /> Open
         </a>
@@ -151,7 +151,7 @@ export function PaperCard({
           href={downloadUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 text-[12.5px] font-semibold text-ink-700 transition hover:bg-ink-50 active:scale-[0.98] dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
+          className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-ink-200 bg-white px-2.5 text-[12.5px] font-semibold text-ink-700 sm:px-3 transition hover:bg-ink-50 active:scale-[0.98] dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
         >
           <DownloadIcon className="h-4 w-4" /> Download
         </a>
@@ -169,7 +169,7 @@ export function PaperCard({
           aria-pressed={done}
           aria-label={done ? `Mark ${paper.title} as not done` : `Mark ${paper.title} as done`}
           className={classNames(
-            'inline-flex h-8 shrink-0 items-center gap-1 rounded-xl border px-2.5 text-[12.5px] font-semibold transition active:scale-[0.98]',
+            'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border px-2.5 text-[12.5px] font-semibold transition active:scale-[0.98]',
             done
               ? 'border-emerald-300 bg-emerald-500 text-white hover:bg-emerald-600 dark:border-emerald-400/40'
               : 'border-ink-200 bg-white text-ink-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300',
