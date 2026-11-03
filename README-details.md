@@ -1,5 +1,9 @@
 # Setup & operating guide
 
+## Live site
+
+https://mp-police-pyq-library.vercel.app
+
 ## What visitors get
 
 - Search across titles, folders and tags
@@ -57,7 +61,19 @@ npm run build                # production build in dist/
 publishable key can only do what the row level security policies allow. Never commit a
 `service_role` key.
 
-## Deployment (Vercel)
+## Deployment (Vercel) — already done
+
+Live at <https://mp-police-pyq-library.vercel.app>. Every push to
+`arena/1736cb0b-storage` in the repo can be re-deployed from Vercel; the project is
+`mp-police-pyq-library` (framework Vite, build `npm run build`, output `dist`).
+
+> **Vercel Authentication / Deployment Protection:** this project also answers on the
+> team alias `mp-police-pyq-library-arjunkumarahirwar.vercel.app`, but that host asks
+> visitors to log in to Vercel. Use the short `mp-police-pyq-library.vercel.app`
+> address (public), or turn off *Settings → Deployment Protection → Vercel
+> Authentication* if you want every alias public.
+
+## Deployment settings
 
 The site is a static Vite build. On Vercel the project needs:
 
