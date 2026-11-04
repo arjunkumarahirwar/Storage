@@ -8,6 +8,7 @@ interface AuthDialogProps {
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string) => Promise<{ needsEmailConfirm: boolean }>
   onMagicLink: (email: string) => Promise<void>
+  onPasswordReset: (email: string) => Promise<void>
   onSuccess: (message: string) => void
 }
 
@@ -20,12 +21,13 @@ export function AuthDialog({
   onSignIn,
   onSignUp,
   onMagicLink,
+  onPasswordReset,
   onSuccess,
 }: AuthDialogProps) {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [busy, setBusy] = useState<'password' | 'magic' | null>(null)
+  const [busy, setBusy] = useState<'password' | 'magic' | 'reset' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -70,6 +72,26 @@ export function AuthDialog({
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Something went wrong. Try again.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const withPasswordReset = async () => {
+    setError(null)
+    setNotice(null)
+    if (!email.trim()) {
+      setError('Enter your email address first.')
+      return
+    }
+    setBusy('reset')
+    try {
+      await onPasswordReset(email)
+      setNotice(
+        `If ${email.trim()} has an account, a reset link is on its way. Open it on this device to choose a new password.`,
+      )
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not send the reset link.')
     } finally {
       setBusy(null)
     }
@@ -173,6 +195,17 @@ export function AuthDialog({
           {busy === 'password' && <LoaderIcon className="h-4 w-4" />}
           {mode === 'signin' ? 'Sign in' : 'Create account'}
         </button>
+
+        {mode === 'signin' && (
+          <button
+            type="button"
+            onClick={withPasswordReset}
+            disabled={busy !== null}
+            className="w-full pt-0.5 text-center text-[12px] font-semibold text-ink-500 underline decoration-ink-300 decoration-dotted underline-offset-2 transition hover:text-brand-600 disabled:opacity-60 dark:text-ink-400 dark:hover:text-brand-300"
+          >
+            {busy === 'reset' ? 'Sending reset link…' : 'Forgot your password?'}
+          </button>
+        )}
       </form>
 
       <div className="my-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">

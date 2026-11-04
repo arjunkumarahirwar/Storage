@@ -10,6 +10,8 @@ export interface AuthState {
   signInWithPassword: (email: string, password: string) => Promise<void>
   signUpWithPassword: (email: string, password: string) => Promise<{ needsEmailConfirm: boolean }>
   sendMagicLink: (email: string) => Promise<void>
+  sendPasswordReset: (email: string) => Promise<void>
+  updatePassword: (password: string) => Promise<void>
   signOut: () => Promise<void>
   refreshAdmin: () => Promise<void>
 }
@@ -88,6 +90,18 @@ export function useAuth(): AuthState {
     if (error) throw error
   }, [])
 
+  const sendPasswordReset = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: window.location.origin,
+    })
+    if (error) throw error
+  }, [])
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) throw error
+  }, [])
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut()
     setIsAdmin(false)
@@ -101,6 +115,8 @@ export function useAuth(): AuthState {
     signInWithPassword,
     signUpWithPassword,
     sendMagicLink,
+    sendPasswordReset,
+    updatePassword,
     signOut,
     refreshAdmin: checkAdmin,
   }

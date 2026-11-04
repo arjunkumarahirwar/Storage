@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AddPapersPanel } from './components/AddPapersPanel'
 import { AuthDialog } from './components/AuthDialog'
 import { CategoryChips } from './components/CategoryChips'
@@ -10,6 +10,7 @@ import { Header } from './components/Header'
 import { HeroCard } from './components/HeroCard'
 import { DeviceIcon, PlusIcon, RefreshIcon } from './components/Icons'
 import { PaperCard } from './components/PaperCard'
+import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
 import { usePapers } from './hooks/usePapers'
@@ -39,6 +40,15 @@ export default function App() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [editing, setEditing] = useState<Paper | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Paper | null>(null)
+  const [recoveryOpen, setRecoveryOpen] = useState(false)
+
+  // A password-reset email lands back here with #...&type=recovery
+  useEffect(() => {
+    const looksLikeRecovery =
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('type=recovery')
+    if (looksLikeRecovery) setRecoveryOpen(true)
+  }, [])
 
   const tokens = useMemo(
     () => query.trim().toLowerCase().split(/\s+/).filter(Boolean),
@@ -272,6 +282,17 @@ export default function App() {
         onSignIn={auth.signInWithPassword}
         onSignUp={auth.signUpWithPassword}
         onMagicLink={auth.sendMagicLink}
+        onPasswordReset={auth.sendPasswordReset}
+        onSuccess={(message) => push(message, 'success')}
+      />
+
+      <ResetPasswordDialog
+        open={recoveryOpen}
+        onClose={() => {
+          setRecoveryOpen(false)
+          window.history.replaceState({}, '', window.location.pathname)
+        }}
+        onSave={auth.updatePassword}
         onSuccess={(message) => push(message, 'success')}
       />
 
