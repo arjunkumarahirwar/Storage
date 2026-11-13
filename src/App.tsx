@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { AddPapersPanel } from './components/AddPapersPanel'
 import { AuthDialog } from './components/AuthDialog'
 import { CategoryChips } from './components/CategoryChips'
@@ -8,7 +9,7 @@ import { FilterTabs } from './components/FilterTabs'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { HeroCard } from './components/HeroCard'
-import { DeviceIcon, PlusIcon, RefreshIcon } from './components/Icons'
+import { DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
 import { PaperCard } from './components/PaperCard'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
@@ -30,7 +31,17 @@ export default function App() {
   const { isDark, toggle } = useTheme()
   const { toasts, push, dismiss } = useToasts()
   const auth = useAuth()
-  const { papers, loading, error, reload, addPapers, updatePaper, deletePaper } = usePapers()
+  const {
+    papers,
+    loading,
+    error,
+    reload,
+    addPapers,
+    updatePaper,
+    deletePaper,
+    previewOrder,
+    commitOrder,
+  } = usePapers()
   const progress = useProgress(auth.session?.user.id ?? null)
 
   const [query, setQuery] = useState('')
@@ -41,6 +52,18 @@ export default function App() {
   const [editing, setEditing] = useState<Paper | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Paper | null>(null)
   const [recoveryOpen, setRecoveryOpen] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+
+  // Everything about the card currently held: which pointer owns the drag,
+  // the live order, and the order to fall back to if the drag is cancelled.
+  const dragRef = useRef<{
+    id: string
+    pointerId: number
+    lastY: number
+    changed: boolean
+    ids: string[]
+    originalIds: string[]
+  } | null>(null)
 
   // A password-reset email lands back here with #...&type=recovery
   useEffect(() => {
@@ -101,6 +124,134 @@ export default function App() {
     () => papers.filter((paper) => progress.done.has(paper.id)).length,
     [papers, progress.done],
   )
+
+  const visibleIds = useMemo(() => visible.map((paper) => paper.id), [visible])
+
+  const startDrag = useCallback(
+    (paper: Paper) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (!auth.isAdmin) return
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      event.preventDefault()
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      } catch {
+        // Capture is a nicety; dragging still works through the element itself.
+      }
+      dragRef.current = {
+        id: paper.id,
+        pointerId: event.pointerId,
+        lastY: event.clientY,
+        changed: false,
+        ids: visibleIds,
+        originalIds: visibleIds,
+      }
+      setDraggingId(paper.id)
+    },
+    [auth.isAdmin, visibleIds],
+  )
+
+  const moveDrag = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = dragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+      drag.lastY = event.clientY
+
+      const from = drag.ids.indexOf(drag.id)
+      if (from < 0) return
+
+      const dragged = document.querySelector<HTMLElement>(
+        `[data-paper-id="${drag.id}"]`,
+      )
+      if (!dragged) return
+
+      // Only step when the pointer passes the middle of the card above/below,
+      // so a card cannot bounce back and forth under a steady finger.
+      const draggedRect = dragged.getBoundingClientRect()
+      const step =
+        event.clientY < draggedRect.top + draggedRect.height / 2 ? -1 : 1
+      const to = from + step
+      if (to < 0 || to >= drag.ids.length) return
+
+      const neighbour = document.querySelector<HTMLElement>(
+        `[data-paper-id="${drag.ids[to]}"]`,
+      )
+      if (!neighbour) return
+
+      const neighbourRect = neighbour.getBoundingClientRect()
+      const neighbourMiddle = neighbourRect.top + neighbourRect.height / 2
+      const crossed =
+        step < 0 ? event.clientY < neighbourMiddle : event.clientY > neighbourMiddle
+      if (!crossed) return
+
+      const next = [...drag.ids]
+      next.splice(to, 0, next.splice(from, 1)[0])
+      drag.ids = next
+      drag.changed = true
+      previewOrder(next)
+    },
+    [previewOrder],
+  )
+
+  const saveOrder = useCallback(
+    (ids: string[]) => {
+      void commitOrder(ids).catch(() => {
+        push('Could not save the new order. Check your connection and try again.', 'error')
+      })
+    },
+    [commitOrder, push],
+  )
+
+  const endDrag = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = dragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+      dragRef.current = null
+      setDraggingId(null)
+      if (drag.changed) saveOrder(drag.ids)
+    },
+    [saveOrder],
+  )
+
+  const cancelDrag = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const drag = dragRef.current
+      if (!drag || drag.pointerId !== event.pointerId) return
+      dragRef.current = null
+      setDraggingId(null)
+      if (drag.changed) previewOrder(drag.originalIds)
+    },
+    [previewOrder],
+  )
+
+  const nudgePaper = useCallback(
+    (paper: Paper, delta: number) => {
+      const from = visibleIds.indexOf(paper.id)
+      const to = from + delta
+      if (from < 0 || to < 0 || to >= visibleIds.length) return
+      const next = [...visibleIds]
+      next.splice(to, 0, next.splice(from, 1)[0])
+      saveOrder(next)
+    },
+    [visibleIds, saveOrder],
+  )
+
+  // While a card is held near the top or bottom edge, keep the list scrolling.
+  useEffect(() => {
+    if (!draggingId) return
+    let frame = 0
+    const tick = () => {
+      const drag = dragRef.current
+      if (drag) {
+        const margin = 96
+        const speed = 14
+        if (drag.lastY < margin) window.scrollBy(0, -speed)
+        else if (drag.lastY > window.innerHeight - margin) window.scrollBy(0, speed)
+      }
+      frame = window.requestAnimationFrame(tick)
+    }
+    frame = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(frame)
+  }, [draggingId])
 
   const openAdd = useCallback(() => {
     setEditing(null)
@@ -210,6 +361,13 @@ export default function App() {
               </button>
             )}
           </div>
+          {auth.isAdmin && papers.length > 1 && !loading && (
+            <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-400 dark:text-ink-500">
+              <GripIcon className="h-3.5 w-3.5 shrink-0" />
+              Hold the handle on any card and drag it up or down to set the order
+              everyone sees.
+            </p>
+          )}
           {progress.mode === 'device' && papers.length > 0 && (
             <button
               type="button"
@@ -233,6 +391,26 @@ export default function App() {
                 paper={paper}
                 done={progress.done.has(paper.id)}
                 isAdmin={auth.isAdmin}
+                isDragging={draggingId === paper.id}
+                dragHandleProps={
+                  auth.isAdmin
+                    ? {
+                        onPointerDown: startDrag(paper),
+                        onPointerMove: moveDrag,
+                        onPointerUp: endDrag,
+                        onPointerCancel: cancelDrag,
+                        onKeyDown: (event) => {
+                          if (event.key === 'ArrowUp') {
+                            event.preventDefault()
+                            nudgePaper(paper, -1)
+                          } else if (event.key === 'ArrowDown') {
+                            event.preventDefault()
+                            nudgePaper(paper, 1)
+                          }
+                        },
+                      }
+                    : undefined
+                }
                 onToggleDone={() => void progress.toggleDone(paper.id)}
                 onShare={() => void share(paper)}
                 onEdit={() => openEdit(paper)}

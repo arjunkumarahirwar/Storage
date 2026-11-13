@@ -99,6 +99,17 @@ export const PencilIcon = (props: IconProps) => (
   </svg>
 )
 
+export const GripIcon = (props: IconProps) => (
+  <svg {...base(props)} fill="currentColor" stroke="none">
+    <circle cx="9" cy="6" r="1.6" />
+    <circle cx="15" cy="6" r="1.6" />
+    <circle cx="9" cy="12" r="1.6" />
+    <circle cx="15" cy="12" r="1.6" />
+    <circle cx="9" cy="18" r="1.6" />
+    <circle cx="15" cy="18" r="1.6" />
+  </svg>
+)
+
 export const ShieldIcon = (props: IconProps) => (
   <svg {...base(props)}>
     <path d="M12 3.5 19 6v5.5c0 4.6-2.9 8-7 9.5-4.1-1.5-7-4.9-7-9.5V6Z" />

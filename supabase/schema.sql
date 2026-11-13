@@ -17,9 +17,15 @@ create table if not exists public.papers (
   tags          text[] not null default '{}',
   source_type   text not null default 'own',
   source_url    text,
+  -- Position in the library. 0 = "just added", shown above the rest.
+  sort_order    integer not null default 0,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Re-runs on an existing database keep the new column.
+alter table public.papers
+  add column if not exists sort_order integer not null default 0;
 
 alter table public.papers
   drop constraint if exists papers_title_check,
@@ -52,6 +58,7 @@ alter table public.papers
 create index if not exists papers_category_idx on public.papers (category);
 create index if not exists papers_created_at_idx on public.papers (created_at desc);
 create index if not exists papers_tags_gin_idx on public.papers using gin (tags);
+create index if not exists papers_sort_order_idx on public.papers (sort_order);
 
 -- -------------------------------------------------------- paper_progress ----
 create table if not exists public.paper_progress (
@@ -62,6 +69,35 @@ create table if not exists public.paper_progress (
 );
 
 create index if not exists paper_progress_user_idx on public.paper_progress (user_id);
+
+-- ------------------------------------------------------ reorder (admin) ----
+-- Saves the whole arrangement in one call. The app sends every paper id with
+-- its new position, so the order the administrator drags into place is the
+-- order everybody sees. Guests cannot call this: the function re-checks the
+-- administrator email itself.
+create or replace function public.reorder_papers(p_ids uuid[], p_orders integer[])
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $$
+begin
+  if not public.is_library_admin() then
+    raise exception 'Only the library administrator can reorder papers'
+      using errcode = '42501';
+  end if;
+
+  if coalesce(cardinality(p_ids), 0) <> coalesce(cardinality(p_orders), 0) then
+    raise exception 'p_ids and p_orders must be the same length'
+      using errcode = '22023';
+  end if;
+
+  update public.papers p
+     set sort_order = s.ord
+    from unnest(p_ids, p_orders) as s(id, ord)
+   where p.id = s.id;
+end;
+$$;
 
 -- ------------------------------------------------------------ updated_at ----
 create or replace function public.touch_updated_at()
@@ -157,3 +193,5 @@ grant select on public.papers to anon, authenticated;
 grant insert, update, delete on public.papers to authenticated;
 grant select, insert, update, delete on public.paper_progress to authenticated;
 grant execute on function public.is_library_admin() to authenticated;
+revoke all on function public.reorder_papers(uuid[], integer[]) from public, anon;
+grant execute on function public.reorder_papers(uuid[], integer[]) to authenticated;

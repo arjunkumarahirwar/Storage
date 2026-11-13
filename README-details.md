@@ -19,6 +19,7 @@ https://mppolicepyqs.vercel.app
 - Paste one Drive link per line, or `Title | link`. The file id is extracted for you.
 - Pick a folder, tags and source (Official ESB page + link, or Own work)
 - Edit and delete buttons on every card
+- A grip handle on every card: **drag a card up or down** to set the order everybody sees
 
 ## First-time admin login
 
@@ -62,6 +63,25 @@ Two things to know:
    `drive.google.com/uc?export=download&id=<id>` (Download).
 
 Folder links are rejected — only individual files open in the Drive viewer.
+
+## Arranging the order
+
+1. Sign in as the administrator — every card then shows a small ⠿ handle on its left.
+2. Hold the handle (phone or mouse) and drag the card up or down; the other cards move
+   out of the way while you drag, and the list auto-scrolls near the screen edges.
+3. Let go — the new arrangement is saved for everyone, visitors included.
+4. Prefer the keyboard? Tab to a handle and press **↑ / ↓** to move one step.
+
+Notes:
+
+- New PDFs always appear at the top (their `sort_order` is `0`), so fresh uploads are
+  easy to spot. Drag them wherever you like afterwards.
+- Dragging inside a folder chip or a search result only reshuffles those cards; the
+  rest of the library keeps its slots.
+- The order lives in `papers.sort_order` and is saved with the `reorder_papers()`
+  function, which refuses to run for anyone but the administrator.
+- If saving fails (no connection, say) the cards snap back to the previous order and a
+  red toast appears.
 
 ## Local development
 

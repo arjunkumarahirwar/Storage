@@ -1,3 +1,4 @@
+import type { KeyboardEvent, PointerEvent } from 'react'
 import { driveDownloadUrl, driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
 import type { Paper } from '../lib/types'
@@ -6,16 +7,28 @@ import {
   DownloadIcon,
   ExternalIcon,
   FileIcon,
+  GripIcon,
   LinkIcon,
   PencilIcon,
   ShareIcon,
   TrashIcon,
 } from './Icons'
 
+export interface DragHandleProps {
+  onPointerDown: (event: PointerEvent<HTMLButtonElement>) => void
+  onPointerMove: (event: PointerEvent<HTMLButtonElement>) => void
+  onPointerUp: (event: PointerEvent<HTMLButtonElement>) => void
+  onPointerCancel: (event: PointerEvent<HTMLButtonElement>) => void
+  onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void
+}
+
 interface PaperCardProps {
   paper: Paper
   done: boolean
   isAdmin: boolean
+  isDragging?: boolean
+  /** Present only for the administrator — enables drag / arrow-key reordering. */
+  dragHandleProps?: DragHandleProps
   onToggleDone: () => void
   onShare: () => void
   onEdit: () => void
@@ -31,6 +44,8 @@ export function PaperCard({
   paper,
   done,
   isAdmin,
+  isDragging = false,
+  dragHandleProps,
   onToggleDone,
   onShare,
   onEdit,
@@ -42,14 +57,28 @@ export function PaperCard({
 
   return (
     <article
+      data-paper-id={paper.id}
       className={classNames(
         'group relative flex flex-col rounded-2xl border p-3.5 shadow-card transition sm:p-4',
         done
           ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-500/25 dark:bg-emerald-500/[0.06]'
           : 'border-ink-200/90 bg-white hover:border-ink-300 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700',
+        isDragging &&
+          'z-10 scale-[1.01] border-brand-400 shadow-xl ring-2 ring-brand-500/25 dark:border-brand-500/60',
       )}
     >
       <div className="flex items-start gap-3">
+        {isAdmin && dragHandleProps && (
+          <button
+            type="button"
+            {...dragHandleProps}
+            aria-label={`Reorder ${paper.title}. Press arrow up or arrow down to move it.`}
+            title="Drag up or down to reorder"
+            className="mt-0.5 grid h-8 w-5 shrink-0 cursor-grab touch-none select-none place-items-center rounded-lg text-ink-300 transition hover:bg-ink-100 hover:text-ink-600 active:cursor-grabbing dark:text-ink-600 dark:hover:bg-ink-800 dark:hover:text-ink-200"
+          >
+            <GripIcon className="h-4 w-4" />
+          </button>
+        )}
         <a
           href={viewUrl}
           target="_blank"

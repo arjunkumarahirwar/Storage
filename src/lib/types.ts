@@ -8,6 +8,8 @@ export interface Paper {
   tags: string[]
   source_type: SourceType
   source_url: string | null
+  /** Position in the library, set by dragging cards. 0 means "just added, put me on top". */
+  sort_order: number
   created_at: string
   updated_at: string
 }
