@@ -74,7 +74,7 @@ export function PaperCard({
             {...dragHandleProps}
             aria-label={`Reorder ${paper.title}. Press arrow up or arrow down to move it.`}
             title="Drag up or down to reorder"
-            className="mt-0.5 grid h-8 w-5 shrink-0 cursor-grab touch-none select-none place-items-center rounded-lg text-ink-300 transition hover:bg-ink-100 hover:text-ink-600 active:cursor-grabbing dark:text-ink-600 dark:hover:bg-ink-800 dark:hover:text-ink-200"
+            className="-ml-1 mt-0.5 grid h-9 w-6 shrink-0 cursor-grab touch-none select-none place-items-center rounded-lg text-ink-300 transition hover:bg-ink-100 hover:text-ink-600 active:cursor-grabbing dark:text-ink-600 dark:hover:bg-ink-800 dark:hover:text-ink-200"
           >
             <GripIcon className="h-4 w-4" />
           </button>

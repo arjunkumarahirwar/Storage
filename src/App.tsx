@@ -194,9 +194,11 @@ export default function App() {
 
   const saveOrder = useCallback(
     (ids: string[]) => {
-      void commitOrder(ids).catch(() => {
-        push('Could not save the new order. Check your connection and try again.', 'error')
-      })
+      void commitOrder(ids)
+        .then(() => push('Order saved — everyone sees this arrangement.', 'success'))
+        .catch(() => {
+          push('Could not save the new order. Check your connection and try again.', 'error')
+        })
     },
     [commitOrder, push],
   )
