@@ -4,6 +4,8 @@ import { classNames, formatDate } from '../lib/format'
 import type { Paper } from '../lib/types'
 import {
   CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
   DownloadIcon,
   ExternalIcon,
   FileIcon,
@@ -29,6 +31,10 @@ interface PaperCardProps {
   isDragging?: boolean
   /** Present only for the administrator — enables drag / arrow-key reordering. */
   dragHandleProps?: DragHandleProps
+  /** Arrow buttons on the side rail (administrator only). */
+  onMove?: (delta: -1 | 1) => void
+  canMoveUp?: boolean
+  canMoveDown?: boolean
   onToggleDone: () => void
   onShare: () => void
   onEdit: () => void
@@ -46,6 +52,9 @@ export function PaperCard({
   isAdmin,
   isDragging = false,
   dragHandleProps,
+  onMove,
+  canMoveUp = false,
+  canMoveDown = false,
   onToggleDone,
   onShare,
   onEdit,
@@ -69,15 +78,37 @@ export function PaperCard({
     >
       <div className="flex items-start gap-3">
         {isAdmin && dragHandleProps && (
-          <button
-            type="button"
-            {...dragHandleProps}
-            aria-label={`Reorder ${paper.title}. Press arrow up or arrow down to move it.`}
-            title="Drag up or down to reorder"
-            className="-ml-1 mt-0.5 grid h-9 w-6 shrink-0 cursor-grab touch-none select-none place-items-center rounded-lg text-ink-300 transition hover:bg-ink-100 hover:text-ink-600 active:cursor-grabbing dark:text-ink-600 dark:hover:bg-ink-800 dark:hover:text-ink-200"
-          >
-            <GripIcon className="h-4 w-4" />
-          </button>
+          <div className="-ml-1 flex w-6 shrink-0 flex-col items-center gap-1">
+            <button
+              type="button"
+              {...dragHandleProps}
+              aria-label={`Drag ${paper.title} up or down to reorder`}
+              title="Hold and drag me to reorder"
+              className="grid h-9 w-6 cursor-grab touch-none select-none place-items-center rounded-lg border border-ink-200 bg-white text-ink-400 shadow-card transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 active:cursor-grabbing dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
+            >
+              <GripIcon className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onMove?.(-1)}
+              disabled={!canMoveUp}
+              aria-label={`Move ${paper.title} up`}
+              title="Move up"
+              className="grid h-6 w-6 place-items-center rounded-md border border-ink-200/80 bg-white text-ink-400 transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 disabled:border-transparent disabled:bg-transparent disabled:opacity-25 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
+            >
+              <ChevronUpIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onMove?.(1)}
+              disabled={!canMoveDown}
+              aria-label={`Move ${paper.title} down`}
+              title="Move down"
+              className="grid h-6 w-6 place-items-center rounded-md border border-ink-200/80 bg-white text-ink-400 transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 disabled:border-transparent disabled:bg-transparent disabled:opacity-25 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
+            >
+              <ChevronDownIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
         <a
           href={viewUrl}

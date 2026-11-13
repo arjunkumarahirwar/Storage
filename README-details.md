@@ -19,7 +19,7 @@ https://mppolicepyqs.vercel.app
 - Paste one Drive link per line, or `Title | link`. The file id is extracted for you.
 - Pick a folder, tags and source (Official ESB page + link, or Own work)
 - Edit and delete buttons on every card
-- A grip handle on every card: **drag a card up or down** to set the order everybody sees
+- A small rail on every card: **drag the ⠿ grip, or tap ↑ / ↓**, to set the order everybody sees
 
 ## First-time admin login
 
@@ -66,11 +66,13 @@ Folder links are rejected — only individual files open in the Drive viewer.
 
 ## Arranging the order
 
-1. Sign in as the administrator — every card then shows a small ⠿ handle on its left.
+1. Sign in as the administrator — every card then shows a small rail on its left:
+   a ⠿ grip button and ↑ / ↓ buttons.
 2. Hold the handle (phone or mouse) and drag the card up or down; the other cards move
    out of the way while you drag, and the list auto-scrolls near the screen edges.
 3. Let go — the new arrangement is saved for everyone, visitors included.
-4. Prefer the keyboard? Tab to a handle and press **↑ / ↓** to move one step.
+4. Prefer buttons? Tap **↑ / ↓** on any card — one step per tap, no dragging needed.
+5. Prefer the keyboard? Tab to the grip and press **↑ / ↓**.
 
 Notes:
 

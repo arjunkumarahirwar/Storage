@@ -169,9 +169,24 @@ export function usePapers(): PapersState {
         p_orders: next.map((paper) => paper.sort_order),
       })
 
-      if (orderError) {
+      if (!orderError) return
+
+      // Fallback: the row level security policies already restrict updates to
+      // the administrator, so a plain update per row saves the same order even
+      // if the database function is missing or has not been deployed yet.
+      const results = await Promise.all(
+        next.map((paper) =>
+          supabase
+            .from('papers')
+            .update({ sort_order: paper.sort_order })
+            .eq('id', paper.id),
+        ),
+      )
+      const failure = results.find((result) => result.error)
+
+      if (failure?.error) {
         applyPapers(previous)
-        throw orderError
+        throw failure.error
       }
     },
     [applyPapers],

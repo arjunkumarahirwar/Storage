@@ -131,6 +131,18 @@ export const UserIcon = (props: IconProps) => (
   </svg>
 )
 
+export const ChevronUpIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="m6 14 6-6 6 6" />
+  </svg>
+)
+
+export const ChevronDownIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="m6 10 6 6 6-6" />
+  </svg>
+)
+
 export const ChevronRightIcon = (props: IconProps) => (
   <svg {...base(props)}>
     <path d="m10 6 6 6-6 6" />

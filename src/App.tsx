@@ -193,9 +193,13 @@ export default function App() {
   )
 
   const saveOrder = useCallback(
-    (ids: string[]) => {
+    (ids: string[], options?: { quiet?: boolean }) => {
       void commitOrder(ids)
-        .then(() => push('Order saved — everyone sees this arrangement.', 'success'))
+        .then(() => {
+          if (!options?.quiet) {
+            push('Order saved — everyone sees this arrangement.', 'success')
+          }
+        })
         .catch(() => {
           push('Could not save the new order. Check your connection and try again.', 'error')
         })
@@ -232,7 +236,8 @@ export default function App() {
       if (from < 0 || to < 0 || to >= visibleIds.length) return
       const next = [...visibleIds]
       next.splice(to, 0, next.splice(from, 1)[0])
-      saveOrder(next)
+      // Tapping the arrows is silent; only a failure interrupts the user.
+      saveOrder(next, { quiet: true })
     },
     [visibleIds, saveOrder],
   )
@@ -366,8 +371,8 @@ export default function App() {
           {auth.isAdmin && papers.length > 1 && !loading && (
             <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-400 dark:text-ink-500">
               <GripIcon className="h-3.5 w-3.5 shrink-0" />
-              Hold the handle on any card and drag it up or down to set the order
-              everyone sees.
+              Reorder: hold the ⠿ grip and drag a card, or tap ↑ ↓ on it. The
+              order you set is what every student sees.
             </p>
           )}
           {progress.mode === 'device' && papers.length > 0 && (
@@ -394,6 +399,9 @@ export default function App() {
                 done={progress.done.has(paper.id)}
                 isAdmin={auth.isAdmin}
                 isDragging={draggingId === paper.id}
+                onMove={(delta) => nudgePaper(paper, delta)}
+                canMoveUp={visibleIds[0] !== paper.id}
+                canMoveDown={visibleIds[visibleIds.length - 1] !== paper.id}
                 dragHandleProps={
                   auth.isAdmin
                     ? {
