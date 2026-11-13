@@ -2,7 +2,7 @@
 
 ## Live site
 
-https://mp-police-pyq-library.vercel.app
+https://mppolicepyqs.vercel.app
 
 ## What visitors get
 
@@ -29,6 +29,21 @@ https://mp-police-pyq-library.vercel.app
 
 Any other email can sign up as a normal student, but can never add or delete papers —
 that is enforced in Postgres, not just in the UI.
+
+## Forgot / change password
+
+Say you are signed out → **Sign in** → **Forgot your password?** → type your e-mail.
+Supabase mails a recovery link that lands back on the site, and the site immediately
+asks for the new password twice (6+ characters). Nothing else is needed on your side.
+
+Two things to know:
+
+- **Mail limit.** The built-in Supabase mailer allows 2 e-mails per hour
+  (`rate_limit_email_sent`). If a link never arrives, wait an hour or reset the
+  password straight in the Supabase SQL editor with `crypt(...)`/`pgcrypto`.
+- **The link is only as good as the domain.** The recovery link redirects to
+  *Supabase → Authentication → URL Configuration → Site URL*. If the Vercel domain
+  changes, that value must change with it, or the e-mail will point at a dead page.
 
 ## Adding papers
 
@@ -63,15 +78,21 @@ publishable key can only do what the row level security policies allow. Never co
 
 ## Deployment (Vercel) — already done
 
-Live at <https://mp-police-pyq-library.vercel.app>. Every push to
-`arena/1736cb0b-storage` in the repo can be re-deployed from Vercel; the project is
+Live at <https://mppolicepyqs.vercel.app>. Every push to
+`arena/6d872d2b-storage` in the repo can be re-deployed from Vercel; the project is
 `mp-police-pyq-library` (framework Vite, build `npm run build`, output `dist`).
 
 > **Vercel Authentication / Deployment Protection:** this project also answers on the
 > team alias `mp-police-pyq-library-arjunkumarahirwar.vercel.app`, but that host asks
-> visitors to log in to Vercel. Use the short `mp-police-pyq-library.vercel.app`
-> address (public), or turn off *Settings → Deployment Protection → Vercel
-> Authentication* if you want every alias public.
+> visitors to log in to Vercel. Use the short `mppolicepyqs.vercel.app` address
+> (public), or turn off *Settings → Deployment Protection → Vercel Authentication*
+> if you want every alias public.
+>
+> **The live domain changed once already.** `mp-police-pyq-library.vercel.app` no
+> longer resolves to the project (it returns 404 DEPLOYMENT_NOT_FOUND). If the
+> address ever changes again, update *Supabase → Authentication → URL
+> Configuration* (`Site URL` + `Redirect URLs`) in the same sitting, otherwise
+> password-reset e-mails will point at a dead page.
 
 ## Deployment settings
 
