@@ -68,8 +68,9 @@ Folder links are rejected — only individual files open in the Drive viewer.
 
 1. Sign in as the administrator — every card then shows a small rail on its left:
    a ⠿ grip button and ↑ / ↓ buttons.
-2. Hold the handle (phone or mouse) and drag the card up or down; the other cards move
-   out of the way while you drag, and the list auto-scrolls near the screen edges.
+2. Hold the grip (phone or mouse) and drag the card up or down — the card follows your
+   finger pixel by pixel, the cards it passes glide one slot aside, and the list
+   auto-scrolls when you reach the top or bottom edge. Release to drop it.
 3. Let go — the new arrangement is saved for everyone, visitors included.
 4. Prefer buttons? Tap **↑ / ↓** on any card — one step per tap, no dragging needed.
 5. Prefer the keyboard? Tab to the grip and press **↑ / ↓**.

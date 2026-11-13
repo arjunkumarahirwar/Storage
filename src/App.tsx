@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { AddPapersPanel } from './components/AddPapersPanel'
 import { AuthDialog } from './components/AuthDialog'
@@ -21,6 +21,9 @@ import { useToasts } from './hooks/useToasts'
 import { driveViewUrl } from './lib/drive'
 import type { Paper, ProgressFilter } from './lib/types'
 
+const listCards = () =>
+  Array.from(document.querySelectorAll<HTMLElement>('[data-paper-id]'))
+
 const matchesQuery = (paper: Paper, tokens: string[]) => {
   if (!tokens.length) return true
   const haystack = [paper.title, paper.category, ...paper.tags].join(' ').toLowerCase()
@@ -39,7 +42,6 @@ export default function App() {
     addPapers,
     updatePaper,
     deletePaper,
-    previewOrder,
     commitOrder,
   } = usePapers()
   const progress = useProgress(auth.session?.user.id ?? null)
@@ -59,11 +61,20 @@ export default function App() {
   const dragRef = useRef<{
     id: string
     pointerId: number
+    startY: number
+    startScroll: number
     lastY: number
-    changed: boolean
+    from: number
+    to: number
     ids: string[]
-    originalIds: string[]
+    els: Map<string, HTMLElement>
+    centers: Map<string, number>
+    tops: Map<string, number>
+    heights: Map<string, number>
+    gap: number
+    changed: boolean
   } | null>(null)
+  const settleRef = useRef(false)
 
   // A password-reset email lands back here with #...&type=recovery
   useEffect(() => {
@@ -127,6 +138,12 @@ export default function App() {
 
   const visibleIds = useMemo(() => visible.map((paper) => paper.id), [visible])
 
+  /**
+   * Cards are never re-ordered in React while a finger is down. The held card
+   * is moved with a transform that follows the pointer exactly, the cards it
+   * passes slide aside with a CSS transition, and only on release is the new
+   * order written to the database. That is what makes the drag feel smooth.
+   */
   const startDrag = useCallback(
     (paper: Paper) => (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (!auth.isAdmin) return
@@ -135,62 +152,116 @@ export default function App() {
       try {
         event.currentTarget.setPointerCapture(event.pointerId)
       } catch {
-        // Capture is a nicety; dragging still works through the element itself.
+        // Capture is a nicety; the gesture still works without it.
       }
+
+      const cards = listCards()
+      const ids = cards.map((card) => card.dataset.paperId ?? '')
+      const from = ids.indexOf(paper.id)
+      if (from < 0) return
+
+      const rects = cards.map((card) => card.getBoundingClientRect())
+      const below = rects[from + 1]
+      const gap = below ? Math.max(4, below.top - rects[from].bottom) : 12
+
+      const centers = new Map<string, number>()
+      const tops = new Map<string, number>()
+      const heights = new Map<string, number>()
+      ids.forEach((id, index) => {
+        centers.set(id, rects[index].top + rects[index].height / 2)
+        tops.set(id, rects[index].top)
+        heights.set(id, rects[index].height)
+      })
+      const els = new Map<string, HTMLElement>()
+      cards.forEach((card, index) => els.set(ids[index], card))
+
+      cards.forEach((card) => {
+        card.style.transition = 'transform 190ms cubic-bezier(0.2, 0.8, 0.2, 1)'
+      })
+      const draggedEl = els.get(paper.id)
+      if (draggedEl) {
+        draggedEl.style.transition = 'none'
+        draggedEl.style.zIndex = '30'
+        draggedEl.style.willChange = 'transform'
+      }
+      document.body.style.userSelect = 'none'
+
       dragRef.current = {
         id: paper.id,
         pointerId: event.pointerId,
+        startY: event.clientY,
+        startScroll: window.scrollY,
         lastY: event.clientY,
+        from,
+        to: from,
+        ids,
+        els,
+        centers,
+        tops,
+        heights,
+        gap,
         changed: false,
-        ids: visibleIds,
-        originalIds: visibleIds,
       }
       setDraggingId(paper.id)
     },
-    [auth.isAdmin, visibleIds],
+    [auth.isAdmin],
   )
 
-  const moveDrag = useCallback(
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
-      const drag = dragRef.current
-      if (!drag || drag.pointerId !== event.pointerId) return
-      drag.lastY = event.clientY
+  const moveDrag = useCallback((event: ReactPointerEvent<HTMLButtonElement>) => {
+    const drag = dragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    drag.lastY = event.clientY
 
-      const from = drag.ids.indexOf(drag.id)
-      if (from < 0) return
+    // Scrolling during the gesture must not fight the finger.
+    const scrolled = window.scrollY - drag.startScroll
+    const travelled = event.clientY - drag.startY
+    const dy = travelled + scrolled
 
-      const dragged = document.querySelector<HTMLElement>(
-        `[data-paper-id="${drag.id}"]`,
-      )
-      if (!dragged) return
+    const draggedEl = drag.els.get(drag.id)
+    if (draggedEl) draggedEl.style.transform = `translate3d(0, ${dy}px, 0)`
 
-      // Only step when the pointer passes the middle of the card above/below,
-      // so a card cannot bounce back and forth under a steady finger.
-      const draggedRect = dragged.getBoundingClientRect()
-      const step =
-        event.clientY < draggedRect.top + draggedRect.height / 2 ? -1 : 1
-      const to = from + step
-      if (to < 0 || to >= drag.ids.length) return
+    const ownCenter = drag.centers.get(drag.id) ?? 0
+    const movingCenter = ownCenter + travelled
 
-      const neighbour = document.querySelector<HTMLElement>(
-        `[data-paper-id="${drag.ids[to]}"]`,
-      )
-      if (!neighbour) return
+    let to = drag.from
+    if (dy > 0) {
+      for (let index = drag.from + 1; index < drag.ids.length; index += 1) {
+        if (movingCenter > (drag.centers.get(drag.ids[index]) ?? Number.POSITIVE_INFINITY)) {
+          to = index
+        }
+      }
+    } else if (dy < 0) {
+      for (let index = drag.from - 1; index >= 0; index -= 1) {
+        if (movingCenter < (drag.centers.get(drag.ids[index]) ?? Number.NEGATIVE_INFINITY)) {
+          to = index
+        }
+      }
+    }
 
-      const neighbourRect = neighbour.getBoundingClientRect()
-      const neighbourMiddle = neighbourRect.top + neighbourRect.height / 2
-      const crossed =
-        step < 0 ? event.clientY < neighbourMiddle : event.clientY > neighbourMiddle
-      if (!crossed) return
+    if (to === drag.to) return
+    drag.to = to
+    drag.changed = to !== drag.from
 
-      const next = [...drag.ids]
-      next.splice(to, 0, next.splice(from, 1)[0])
-      drag.ids = next
-      drag.changed = true
-      previewOrder(next)
-    },
-    [previewOrder],
-  )
+    // Predict where every card will sit once the held card is dropped here,
+    // then translate each one to that spot. Because the prediction uses the
+    // real heights, the drop itself is invisible — no snap at the end.
+    const reordered = [...drag.ids]
+    reordered.splice(to, 0, reordered.splice(drag.from, 1)[0])
+
+    let cursor = drag.tops.get(drag.ids[0]) ?? 0
+    for (const id of reordered) {
+      const target = cursor
+      cursor += (drag.heights.get(id) ?? 0) + drag.gap
+      if (id === drag.id) continue
+
+      const card = drag.els.get(id)
+      if (!card) continue
+
+      const offset = target - (drag.tops.get(id) ?? target)
+      card.style.transform =
+        Math.abs(offset) > 0.5 ? `translate3d(0, ${offset}px, 0)` : ''
+    }
+  }, [])
 
   const saveOrder = useCallback(
     (ids: string[], options?: { quiet?: boolean }) => {
@@ -207,15 +278,42 @@ export default function App() {
     [commitOrder, push],
   )
 
+  const settleCards = useCallback(() => {
+    listCards().forEach((card) => {
+      card.style.transition = 'transform 190ms cubic-bezier(0.2, 0.8, 0.2, 1)'
+      card.style.transform = ''
+      card.style.zIndex = ''
+      card.style.willChange = ''
+    })
+    window.setTimeout(() => {
+      listCards().forEach((card) => {
+        card.style.transition = ''
+      })
+    }, 240)
+  }, [])
+
   const endDrag = useCallback(
     (event: ReactPointerEvent<HTMLButtonElement>) => {
       const drag = dragRef.current
       if (!drag || drag.pointerId !== event.pointerId) return
       dragRef.current = null
       setDraggingId(null)
-      if (drag.changed) saveOrder(drag.ids)
+      document.body.style.userSelect = ''
+
+      if (!drag.changed || drag.to === drag.from) {
+        settleCards()
+        return
+      }
+
+      const next = [...drag.ids]
+      next.splice(drag.to, 0, next.splice(drag.from, 1)[0])
+
+      // Clear the transforms in the same paint the new order lands, so nothing
+      // flickers back to the old position.
+      settleRef.current = true
+      saveOrder(next)
     },
-    [saveOrder],
+    [saveOrder, settleCards],
   )
 
   const cancelDrag = useCallback(
@@ -224,9 +322,10 @@ export default function App() {
       if (!drag || drag.pointerId !== event.pointerId) return
       dragRef.current = null
       setDraggingId(null)
-      if (drag.changed) previewOrder(drag.originalIds)
+      document.body.style.userSelect = ''
+      settleCards()
     },
-    [previewOrder],
+    [settleCards],
   )
 
   const nudgePaper = useCallback(
@@ -242,6 +341,24 @@ export default function App() {
     [visibleIds, saveOrder],
   )
 
+  // After a drop, wipe the inline transforms before the browser paints.
+  useLayoutEffect(() => {
+    if (!settleRef.current) return
+    settleRef.current = false
+    listCards().forEach((card) => {
+      card.style.transition = 'none'
+      card.style.transform = ''
+      card.style.zIndex = ''
+      card.style.willChange = ''
+    })
+    const frame = window.requestAnimationFrame(() => {
+      listCards().forEach((card) => {
+        card.style.transition = ''
+      })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [papers])
+
   // While a card is held near the top or bottom edge, keep the list scrolling.
   useEffect(() => {
     if (!draggingId) return
@@ -250,7 +367,7 @@ export default function App() {
       const drag = dragRef.current
       if (drag) {
         const margin = 96
-        const speed = 14
+        const speed = 12
         if (drag.lastY < margin) window.scrollBy(0, -speed)
         else if (drag.lastY > window.innerHeight - margin) window.scrollBy(0, speed)
       }

@@ -73,7 +73,7 @@ export function PaperCard({
           ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-500/25 dark:bg-emerald-500/[0.06]'
           : 'border-ink-200/90 bg-white hover:border-ink-300 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700',
         isDragging &&
-          'z-10 scale-[1.01] border-brand-400 shadow-xl ring-2 ring-brand-500/25 dark:border-brand-500/60',
+          'border-brand-400 shadow-2xl ring-2 ring-brand-500/30 dark:border-brand-500/60',
       )}
     >
       <div className="flex items-start gap-3">
