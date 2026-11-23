@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Avatar } from './Avatar'
 import {
   LogOutIcon,
   MoonIcon,
@@ -16,8 +17,11 @@ interface HeaderProps {
   onToggleTheme: () => void
   email: string | null
   isAdmin: boolean
+  username: string | null
+  avatarUrl: string | null
   onSignIn: () => void
   onSignOut: () => void
+  onEditProfile: () => void
 }
 
 export function Header({
@@ -27,8 +31,11 @@ export function Header({
   onToggleTheme,
   email,
   isAdmin,
+  username,
+  avatarUrl,
   onSignIn,
   onSignOut,
+  onEditProfile,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -84,23 +91,34 @@ export function Header({
                   onClick={() => setMenuOpen((open) => !open)}
                   className="flex h-9 items-center gap-1.5 rounded-full border border-ink-200 pl-1 pr-2.5 text-sm font-semibold text-ink-700 transition hover:bg-ink-100 dark:border-ink-700 dark:text-ink-200 dark:hover:bg-ink-800"
                 >
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-[11px] font-bold uppercase text-white">
-                    {email.slice(0, 2)}
-                  </span>
+                  <Avatar
+                    url={avatarUrl}
+                    name={username ?? email}
+                    className="h-7 w-7 text-[10px] ring-1 ring-black/5"
+                  />
                   <span className="max-w-[82px] truncate sm:max-w-[140px]">
-                    {isAdmin ? 'Admin' : email.split('@')[0]}
+                    {username ? `@${username}` : isAdmin ? 'Admin' : email.split('@')[0]}
                   </span>
                 </button>
 
                 {menuOpen && (
                   <div className="animate-pop-in absolute right-0 mt-2 w-64 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-lift dark:border-ink-700 dark:bg-ink-900">
                     <div className="border-b border-ink-100 px-4 py-3 dark:border-ink-800">
-                      <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">
-                        Signed in
-                      </p>
-                      <p className="mt-0.5 truncate text-sm font-medium text-ink-800 dark:text-ink-100">
-                        {email}
-                      </p>
+                      <div className="flex items-center gap-2.5">
+                        <Avatar
+                          url={avatarUrl}
+                          name={username ?? email}
+                          className="h-10 w-10 text-[13px] ring-1 ring-black/5"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-ink-900 dark:text-white">
+                            {username ? `@${username}` : 'No username yet'}
+                          </p>
+                          <p className="truncate text-[12px] text-ink-500 dark:text-ink-400">
+                            {email}
+                          </p>
+                        </div>
+                      </div>
                       <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400">
                         {isAdmin ? (
                           <>
@@ -113,6 +131,16 @@ export function Header({
                         )}
                       </p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        onEditProfile()
+                      }}
+                      className="flex w-full items-center gap-2 border-b border-ink-100 px-4 py-3 text-left text-sm font-medium text-ink-700 transition hover:bg-ink-50 dark:border-ink-800 dark:text-ink-200 dark:hover:bg-ink-800"
+                    >
+                      <UserIcon className="h-4 w-4" /> Edit profile
+                    </button>
                     <button
                       type="button"
                       onClick={() => {

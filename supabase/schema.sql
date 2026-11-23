@@ -4,6 +4,8 @@
 -- ----------------------------------------------------------------------------
 -- papers          one row per PDF stored in Google Drive
 -- paper_progress  one row per student per finished paper
+-- profiles        one row per person: username + avatar picture
+-- avatars         public storage bucket holding those pictures
 -- ============================================================================
 
 create extension if not exists pgcrypto;
@@ -99,6 +101,23 @@ begin
 end;
 $$;
 
+-- -------------------------------------------------------------- profiles ----
+-- One row per signed-in person: the username and the picture shown in the app.
+-- The app forces this row to exist right after the first sign-in.
+create table if not exists public.profiles (
+  id         uuid primary key references auth.users (id) on delete cascade,
+  username   text not null,
+  avatar_url text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint profiles_username_check check (username ~ '^[A-Za-z0-9._]{3,24}$'),
+  constraint profiles_avatar_check check (avatar_url ~* '^https://')
+);
+
+-- Usernames are unique regardless of upper/lower case.
+create unique index if not exists profiles_username_lower_key
+  on public.profiles (lower(username));
+
 -- ------------------------------------------------------------ updated_at ----
 create or replace function public.touch_updated_at()
 returns trigger
@@ -113,6 +132,11 @@ $$;
 drop trigger if exists papers_touch_updated_at on public.papers;
 create trigger papers_touch_updated_at
   before update on public.papers
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists profiles_touch_updated_at on public.profiles;
+create trigger profiles_touch_updated_at
+  before update on public.profiles
   for each row execute function public.touch_updated_at();
 
 -- --------------------------------------------------------- admin check ------
@@ -188,10 +212,59 @@ create policy "Delete only your own progress"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+drop policy if exists "Profiles are readable" on public.profiles;
+create policy "Profiles are readable"
+  on public.profiles for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Create your own profile" on public.profiles;
+create policy "Create your own profile"
+  on public.profiles for insert
+  to authenticated
+  with check ((select auth.uid()) = id);
+
+drop policy if exists "Update your own profile" on public.profiles;
+create policy "Update your own profile"
+  on public.profiles for update
+  to authenticated
+  using ((select auth.uid()) = id)
+  with check ((select auth.uid()) = id);
+
+-- ------------------------------------------------------- avatars (storage) --
+-- Public bucket; every person may only write inside their own <user-id>/ folder.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 5242880, array['image/png', 'image/jpeg', 'image/webp'])
+on conflict (id) do update
+  set public = true,
+      file_size_limit = 5242880,
+      allowed_mime_types = array['image/png', 'image/jpeg', 'image/webp'];
+
+drop policy if exists "Avatars are publicly readable" on storage.objects;
+create policy "Avatars are publicly readable"
+  on storage.objects for select
+  to anon, authenticated
+  using (bucket_id = 'avatars');
+
+drop policy if exists "Users manage their own avatar" on storage.objects;
+create policy "Users manage their own avatar"
+  on storage.objects for all
+  to authenticated
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  )
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
 -- ---------------------------------------------------------------- grants ----
 grant select on public.papers to anon, authenticated;
 grant insert, update, delete on public.papers to authenticated;
 grant select, insert, update, delete on public.paper_progress to authenticated;
+grant select on public.profiles to anon, authenticated;
+grant insert, update on public.profiles to authenticated;
 grant execute on function public.is_library_admin() to authenticated;
 revoke all on function public.reorder_papers(uuid[], integer[]) from public, anon;
 grant execute on function public.reorder_papers(uuid[], integer[]) to authenticated;

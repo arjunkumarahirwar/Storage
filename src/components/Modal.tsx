@@ -9,13 +9,24 @@ interface ModalProps {
   icon?: ReactNode
   children: ReactNode
   wide?: boolean
+  /** false = the dialog cannot be dismissed (used for the mandatory profile step). */
+  dismissible?: boolean
 }
 
-export function Modal({ open, onClose, title, description, icon, children, wide }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  icon,
+  children,
+  wide,
+  dismissible = true,
+}: ModalProps) {
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (dismissible && event.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKeyDown)
     const previous = document.body.style.overflow
@@ -24,7 +35,7 @@ export function Modal({ open, onClose, title, description, icon, children, wide 
       document.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = previous
     }
-  }, [open, onClose])
+  }, [open, onClose, dismissible])
 
   if (!open) return null
 
@@ -32,7 +43,7 @@ export function Modal({ open, onClose, title, description, icon, children, wide 
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div
         className="animate-fade-in absolute inset-0 bg-ink-950/55 backdrop-blur-[2px]"
-        onClick={onClose}
+        onClick={dismissible ? onClose : undefined}
         aria-hidden
       />
       <div
@@ -58,14 +69,16 @@ export function Modal({ open, onClose, title, description, icon, children, wide 
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-white"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
+          {dismissible && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-white"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
       </div>

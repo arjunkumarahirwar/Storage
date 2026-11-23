@@ -24,6 +24,14 @@ export interface NewPaper {
   source_url: string | null
 }
 
+export interface Profile {
+  id: string
+  username: string
+  avatar_url: string
+  created_at: string
+  updated_at: string
+}
+
 export type ProgressFilter = 'all' | 'open' | 'done'
 
 export interface ToastMessage {

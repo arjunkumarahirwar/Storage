@@ -11,10 +11,12 @@ import { Header } from './components/Header'
 import { HeroCard } from './components/HeroCard'
 import { DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
 import { PaperCard } from './components/PaperCard'
+import { ProfileDialog } from './components/ProfileDialog'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
 import { usePapers } from './hooks/usePapers'
+import { useProfile } from './hooks/useProfile'
 import { useProgress } from './hooks/useProgress'
 import { useTheme } from './hooks/useTheme'
 import { useToasts } from './hooks/useToasts'
@@ -45,6 +47,7 @@ export default function App() {
     commitOrder,
   } = usePapers()
   const progress = useProgress(auth.session?.user.id ?? null)
+  const { profile, needsSetup, saveProfile } = useProfile(auth.session?.user.id ?? null)
 
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -54,6 +57,7 @@ export default function App() {
   const [editing, setEditing] = useState<Paper | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Paper | null>(null)
   const [recoveryOpen, setRecoveryOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
   // Everything about the card currently held: which pointer owns the drag,
@@ -432,9 +436,13 @@ export default function App() {
         onToggleTheme={toggle}
         email={auth.email}
         isAdmin={auth.isAdmin}
+        username={profile?.username ?? null}
+        avatarUrl={profile?.avatar_url ?? null}
         onSignIn={() => setAuthOpen(true)}
+        onEditProfile={() => setProfileOpen(true)}
         onSignOut={() => {
           void auth.signOut()
+          setProfileOpen(false)
           push('Signed out. Your marks stay saved on this device.', 'info')
         }}
       />
@@ -588,6 +596,21 @@ export default function App() {
         onSignUp={auth.signUpWithPassword}
         onMagicLink={auth.sendMagicLink}
         onPasswordReset={auth.sendPasswordReset}
+        onSuccess={(message) => push(message, 'success')}
+      />
+
+      <ProfileDialog
+        open={Boolean(auth.session) && (profileOpen || needsSetup)}
+        required={needsSetup}
+        profile={profile}
+        email={auth.email}
+        onSave={saveProfile}
+        onClose={() => setProfileOpen(false)}
+        onSignOut={() => {
+          setProfileOpen(false)
+          void auth.signOut()
+          push('Signed out.', 'info')
+        }}
         onSuccess={(message) => push(message, 'success')}
       />
 

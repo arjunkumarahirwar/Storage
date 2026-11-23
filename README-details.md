@@ -46,6 +46,27 @@ Two things to know:
   *Supabase → Authentication → URL Configuration → Site URL*. If the Vercel domain
   changes, that value must change with it, or the e-mail will point at a dead page.
 
+## Profile — username and picture
+
+The first time somebody signs in, a dialog opens that cannot be closed until they pick
+a **username** and a **profile picture**. That is the only gate; after saving, the site
+behaves normally and the dialog never comes back unless the profile is somehow empty.
+
+- **Username:** 3–24 characters, letters, numbers, dots and underscores only.
+  Case-insensitive unique — `Arjun` and `arjun` cannot both exist.
+- **Picture:** any JPG/PNG/WebP up to 15 MB. The browser crops it to a square and
+  shrinks it to 320×320 before uploading, so a 4 MB camera photo becomes ~20 kB.
+  Files live in the public Supabase Storage bucket `avatars`, one folder per user id,
+  and the old file is deleted when a new one is uploaded.
+- **Top-right button:** shows the avatar and `@username`. Tapping it opens the menu with
+  **Edit profile** (change name or photo later) and **Sign out**.
+- **Privacy:** row level security means a person can only insert or update their own
+  `profiles` row, and can only write inside their own storage folder. Anybody can read
+  a profile (names and avatars are shown publicly), never change someone else's.
+
+If a picture upload fails, the dialog says so and nothing is saved — the person can
+sign out from inside the dialog if they get stuck.
+
 ## Adding papers
 
 1. In Google Drive, right-click the PDF → **Share** → *Anyone with the link* →
