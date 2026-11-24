@@ -28,6 +28,56 @@ export const parseExamInfo = (title: string): ExamInfo => {
   }
 }
 
+const MONTHS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+]
+
+/** "08 Nov 2025", "8 november 2025", "08/11/2025" — the day the paper was sat. */
+const NAMED_DATE_RE = /\b(\d{1,2})\s*[\s./-]\s*([a-z]{3,9})\.?\s*[\s./,-]\s*((?:19|20)\d{2})\b/i
+const NUMERIC_DATE_RE = /\b(\d{1,2})[/.-](\d{1,2})[/.-]((?:19|20)\d{2})\b/
+
+const iso = (year: number, month: number, day: number) =>
+  `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+/**
+ * The exam date written in the title, as `2025-11-08`, or null.
+ *
+ * Two papers of the same year and the same shift are perfectly normal — the
+ * exam runs for a week, with Shift 1 and Shift 2 every day. The date is what
+ * tells those apart, so anything that compares sittings needs it.
+ */
+export const parseExamDate = (title: string): string | null => {
+  const named = NAMED_DATE_RE.exec(title)
+  if (named) {
+    const day = Number(named[1])
+    const month = MONTHS.indexOf(named[2].slice(0, 3).toLowerCase()) + 1
+    const year = Number(named[3])
+    if (month > 0 && day >= 1 && day <= 31) return iso(year, month, day)
+  }
+
+  // Indian order: day, then month.
+  const numeric = NUMERIC_DATE_RE.exec(title)
+  if (numeric) {
+    const day = Number(numeric[1])
+    const month = Number(numeric[2])
+    const year = Number(numeric[3])
+    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) return iso(year, month, day)
+  }
+
+  return null
+}
+
 export const examLabel = (info: ExamInfo): string => {
   if (info.year && info.shift) return `${info.year} · Shift ${info.shift}`
   if (info.year) return String(info.year)

@@ -405,11 +405,17 @@ problem is known.
 
 1. the same Drive file on two cards,
 2. two cards with the same title (punctuation and capitals ignored),
-3. two cards claiming the same folder + exam year + shift — usually the same paper
-   uploaded twice under slightly different names.
+3. two cards claiming the same folder + **exam date** + shift — usually the same paper
+   uploaded twice under slightly different names. The date is read out of the title
+   (`08 Nov 2025`, `8 november 2025`, `08/11/2025`). It has to be there: the exam runs
+   for a week, so thirteen perfectly good cards all say "2025 · Shift 1", and comparing
+   the year alone used to flag every one of them. A card whose title carries no date is
+   left out of this check — the file and title checks above still cover it.
 
 Each group lists the cards with their folder and upload date, with **Edit** and **Delete**
 on every row. The numbers at the top also flag papers with no exam year set.
+`npm run test:duplicates` runs the guard against a week of real-shaped titles, so a
+future tweak cannot bring the false warnings back.
 
 > The check runs in `api/link-health.js`, a Vercel serverless function. It calls Drive from
 > the server because a browser cannot read a cross-origin Drive response; it reads only

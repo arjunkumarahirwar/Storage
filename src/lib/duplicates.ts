@@ -1,3 +1,4 @@
+import { parseExamDate } from './exam'
 import type { Paper } from './types'
 
 /** Lets the caller turn a message into the reader's language; identity by default. */
@@ -152,10 +153,16 @@ export const duplicateGroups = (papers: Paper[]): DuplicateGroup[] => {
     collect(`title-${title}`, 'These cards have the same title.', matches)
   }
 
+  // A sitting is one folder, one date and one shift. Two papers of the same
+  // year share a shift (the exam runs for days), so the year alone is not a
+  // slot — without a date in the title there is nothing to compare, and the
+  // file / title checks above already cover the real duplicates.
   const bySlot = new Map<string, Paper[]>()
   for (const paper of papers) {
-    if (!paper.exam_year || !paper.exam_shift) continue
-    const key = `${paper.category}|${paper.exam_year}|${paper.exam_shift}`
+    if (!paper.exam_shift) continue
+    const date = parseExamDate(paper.title)
+    if (!date) continue
+    const key = `${paper.category}|${date}|${paper.exam_shift}`
     const list = bySlot.get(key) ?? []
     list.push(paper)
     bySlot.set(key, list)
@@ -163,7 +170,7 @@ export const duplicateGroups = (papers: Paper[]): DuplicateGroup[] => {
   for (const [slot, matches] of bySlot) {
     collect(
       `slot-${slot}`,
-      'Two cards claim the same exam year and shift in the same folder — probably the same paper uploaded twice.',
+      'Two cards claim the same exam date and shift in the same folder — probably the same paper uploaded twice.',
       matches,
     )
   }

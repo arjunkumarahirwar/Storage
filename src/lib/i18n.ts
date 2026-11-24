@@ -439,8 +439,8 @@ const hi: Record<string, string> = {
   '{folder} · added {date}': '{folder} · {date} को जोड़ा',
   'The same Drive file is used by more than one card.': 'एक ही Drive फ़ाइल एक से ज़्यादा कार्ड में लगी है।',
   'These cards have the same title.': 'इन कार्डों का शीर्षक एक जैसा है।',
-  'Two cards claim the same exam year and shift in the same folder — probably the same paper uploaded twice.':
-    'एक ही फ़ोल्डर में दो कार्ड एक ही साल और शिफ्ट के हैं — शायद एक ही पेपर दो बार अपलोड हुआ है।',
+  'Two cards claim the same exam date and shift in the same folder — probably the same paper uploaded twice.':
+    'एक ही फ़ोल्डर में दो कार्ड एक ही तारीख़ और शिफ्ट के हैं — शायद एक ही पेपर दो बार अपलोड हुआ है।',
   'The link checker asks Google Drive about each file from our own server, because a browser is not allowed to read Drive directly. It never downloads a file — only the first part of its preview page.':
     'लिंक जाँचने वाला हमारे सर्वर से Google Drive से हर फ़ाइल के बारे में पूछता है, क्योंकि ब्राउज़र सीधे Drive नहीं पढ़ सकता। यह कोई फ़ाइल डाउनलोड नहीं करता — सिर्फ़ उसके प्रीव्यू पेज का शुरुआती हिस्सा देखता है।',
   'Best {score} of {time} practised.': 'सर्वश्रेष्ठ {score} · कुल {time} अभ्यास।',
