@@ -28,6 +28,10 @@ interface PaperCardProps {
   paper: Paper
   done: boolean
   isAdmin: boolean
+  /** The answer key attached to this paper, if any. */
+  solution?: Paper | null
+  /** When this card IS an answer key: the paper it belongs to. */
+  originalPaper?: Paper | null
   isDragging?: boolean
   /** Present only for the administrator — enables drag / arrow-key reordering. */
   dragHandleProps?: DragHandleProps
@@ -50,6 +54,8 @@ export function PaperCard({
   paper,
   done,
   isAdmin,
+  solution,
+  originalPaper,
   isDragging = false,
   dragHandleProps,
   onMove,
@@ -165,6 +171,28 @@ export function PaperCard({
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            {solution && (
+              <a
+                href={driveViewUrl(solution.drive_file_id)}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={`Answer key: ${solution.title}`}
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
+              >
+                <CheckIcon className="h-3 w-3" /> Answer key
+              </a>
+            )}
+            {originalPaper && (
+              <a
+                href={driveViewUrl(originalPaper.drive_file_id)}
+                target="_blank"
+                rel="noreferrer noopener"
+                title={`Question paper: ${originalPaper.title}`}
+                className="inline-flex items-center gap-1 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 transition hover:border-ink-300 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-300 dark:hover:bg-ink-700"
+              >
+                <FileIcon className="h-3 w-3" /> Question paper
+              </a>
+            )}
             <span className="rounded-md bg-ink-100 px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 dark:bg-ink-800 dark:text-ink-300">
               {paper.category}
             </span>

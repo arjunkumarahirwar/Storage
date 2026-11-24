@@ -21,16 +21,22 @@ create table if not exists public.papers (
   source_url    text,
   -- Position in the library. 0 = "just added", shown above the rest.
   sort_order    integer not null default 0,
+  -- The answer key attached to this paper (another row in this table).
+  solution_paper_id uuid references public.papers (id) on delete set null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
 
--- Re-runs on an existing database keep the new column.
+-- Re-runs on an existing database keep the new columns.
 alter table public.papers
-  add column if not exists sort_order integer not null default 0;
+  add column if not exists sort_order integer not null default 0,
+  add column if not exists solution_paper_id uuid
+    references public.papers (id) on delete set null;
 
 alter table public.papers
   drop constraint if exists papers_title_check,
+  drop constraint if exists papers_drive_file_id_check,
+  drop constraint if exists papers_solution_self_check,
   drop constraint if exists papers_category_check,
   drop constraint if exists papers_tags_check,
   drop constraint if exists papers_source_type_check,
@@ -55,12 +61,24 @@ alter table public.papers
     check (
       (source_type = 'own' and source_url is null)
       or (source_type = 'official' and source_url ~* '^https://[^[:space:]]+$')
-    );
+    ),
+  add constraint papers_solution_self_check
+    check (solution_paper_id is null or solution_paper_id <> id);
 
 create index if not exists papers_category_idx on public.papers (category);
 create index if not exists papers_created_at_idx on public.papers (created_at desc);
 create index if not exists papers_tags_gin_idx on public.papers using gin (tags);
 create index if not exists papers_sort_order_idx on public.papers (sort_order);
+create index if not exists papers_solution_idx on public.papers (solution_paper_id);
+
+-- Link every "<paper> Solution" row to the paper with the matching title.
+-- Safe to re-run: only fills links that are still empty.
+update public.papers p
+set solution_paper_id = s.id
+from public.papers s
+where p.solution_paper_id is null
+  and lower(btrim(s.title)) = lower(btrim(p.title)) || ' solution'
+  and s.id <> p.id;
 
 -- -------------------------------------------------------- paper_progress ----
 create table if not exists public.paper_progress (

@@ -81,6 +81,49 @@ export function usePapers(): PapersState {
     void reload()
   }, [reload])
 
+  /**
+   * If a newly added PDF is titled "<paper> Solution" and a paper with that
+   * exact title exists, attach it as that paper's answer key automatically.
+   * The admin can always change it later from Edit.
+   */
+  const autoLinkSolutions = useCallback(
+    async (added: Paper[]) => {
+      if (!added.length) return
+      const library = papersRef.current
+      const byTitle = new Map(
+        library.map((paper) => [paper.title.trim().toLowerCase(), paper]),
+      )
+      const links: { id: string; solution_paper_id: string }[] = []
+
+      for (const paper of added) {
+        const match = /^(.*?)\s+solution$/i.exec(paper.title.trim())
+        if (!match) continue
+        const target = byTitle.get(match[1].trim().toLowerCase())
+        if (!target || target.id === paper.id || target.solution_paper_id) continue
+        links.push({ id: target.id, solution_paper_id: paper.id })
+      }
+      if (!links.length) return
+
+      const saved: { id: string; solution_paper_id: string }[] = []
+      for (const link of links) {
+        const { error: linkError } = await supabase
+          .from('papers')
+          .update({ solution_paper_id: link.solution_paper_id })
+          .eq('id', link.id)
+        if (!linkError) saved.push(link)
+      }
+      if (!saved.length) return
+
+      applyPapers(
+        papersRef.current.map((paper) => {
+          const link = saved.find((entry) => entry.id === paper.id)
+          return link ? { ...paper, solution_paper_id: link.solution_paper_id } : paper
+        }),
+      )
+    },
+    [applyPapers],
+  )
+
   const addPapers = useCallback(
     async (rows: NewPaper[]): Promise<AddResult> => {
       const result: AddResult = { inserted: 0, failures: [] }
@@ -95,11 +138,13 @@ export function usePapers(): PapersState {
         const inserted = (data ?? []) as Paper[]
         applyPapers([...inserted].reverse().concat(papersRef.current))
         result.inserted = inserted.length
+        await autoLinkSolutions(inserted)
         return result
       }
 
       // Bulk insert is all-or-nothing: retry one by one so a single duplicate
       // or bad row does not stop the rest.
+      const addedOneByOne: Paper[] = []
       for (const row of rows) {
         const { data: single, error: rowError } = await supabase
           .from('papers')
@@ -114,13 +159,15 @@ export function usePapers(): PapersState {
           })
         } else if (single) {
           applyPapers([single as Paper, ...papersRef.current])
+          addedOneByOne.push(single as Paper)
           result.inserted += 1
         }
       }
 
+      await autoLinkSolutions(addedOneByOne)
       return result
     },
-    [applyPapers],
+    [applyPapers, autoLinkSolutions],
   )
 
   const updatePaper = useCallback(

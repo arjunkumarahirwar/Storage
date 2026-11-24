@@ -26,9 +26,11 @@ import type { Paper, ProgressFilter } from './lib/types'
 const listCards = () =>
   Array.from(document.querySelectorAll<HTMLElement>('[data-paper-id]'))
 
-const matchesQuery = (paper: Paper, tokens: string[]) => {
+const matchesQuery = (paper: Paper, tokens: string[], extra = '') => {
   if (!tokens.length) return true
-  const haystack = [paper.title, paper.category, ...paper.tags].join(' ').toLowerCase()
+  const haystack = [paper.title, paper.category, ...paper.tags, extra]
+    .join(' ')
+    .toLowerCase()
   return tokens.every((token) => haystack.includes(token))
 }
 
@@ -93,6 +95,27 @@ export default function App() {
     [query],
   )
 
+  const papersById = useMemo(
+    () => new Map(papers.map((paper) => [paper.id, paper])),
+    [papers],
+  )
+
+  // paper id -> its answer key card
+  const solutionFor = useCallback(
+    (paper: Paper) =>
+      paper.solution_paper_id ? (papersById.get(paper.solution_paper_id) ?? null) : null,
+    [papersById],
+  )
+
+  // answer-key id -> the paper it belongs to
+  const originalFor = useMemo(() => {
+    const map = new Map<string, Paper>()
+    for (const paper of papers) {
+      if (paper.solution_paper_id) map.set(paper.solution_paper_id, paper)
+    }
+    return map
+  }, [papers])
+
   const categories = useMemo(() => {
     const counts = new Map<string, number>()
     for (const paper of papers) {
@@ -105,11 +128,17 @@ export default function App() {
 
   const inScope = useMemo(
     () =>
-      papers.filter(
-        (paper) =>
-          matchesQuery(paper, tokens) && (category === 'All' || paper.category === category),
-      ),
-    [papers, tokens, category],
+      papers.filter((paper) => {
+        const extra = [
+          paper.solution_paper_id ? 'answer key solution' : '',
+          originalFor.has(paper.id) ? 'question paper original' : '',
+        ].join(' ')
+        return (
+          matchesQuery(paper, tokens, extra) &&
+          (category === 'All' || paper.category === category)
+        )
+      }),
+    [papers, tokens, category, originalFor],
   )
 
   const filterCounts = useMemo(() => {
@@ -523,6 +552,8 @@ export default function App() {
                 paper={paper}
                 done={progress.done.has(paper.id)}
                 isAdmin={auth.isAdmin}
+                solution={solutionFor(paper)}
+                originalPaper={originalFor.get(paper.id) ?? null}
                 isDragging={draggingId === paper.id}
                 onMove={(delta) => nudgePaper(paper, delta)}
                 canMoveUp={visibleIds[0] !== paper.id}
@@ -632,6 +663,7 @@ export default function App() {
         }}
         categories={categories.map((entry) => entry.name)}
         editing={editing}
+        papers={papers}
         onCreate={addPapers}
         onUpdate={updatePaper}
         onToast={push}

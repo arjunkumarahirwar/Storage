@@ -14,6 +14,8 @@ interface AddPapersPanelProps {
   onClose: () => void
   categories: string[]
   editing: Paper | null
+  /** Whole library, used to offer "answer key" choices while editing. */
+  papers: Paper[]
   onCreate: (rows: NewPaper[]) => Promise<AddResult>
   onUpdate: (id: string, patch: Partial<NewPaper>) => Promise<void>
   onToast: (message: string, tone: 'success' | 'error' | 'info') => void
@@ -36,6 +38,7 @@ export function AddPapersPanel({
   onClose,
   categories,
   editing,
+  papers,
   onCreate,
   onUpdate,
   onToast,
@@ -55,6 +58,15 @@ export function AddPapersPanel({
   const [editTags, setEditTags] = useState('')
   const [editSourceType, setEditSourceType] = useState<SourceType>('own')
   const [editSourceUrl, setEditSourceUrl] = useState('')
+  const [editSolutionId, setEditSolutionId] = useState('')
+
+  const answerKeyChoices = useMemo(() => {
+    if (!editing) return []
+    return papers
+      .filter((paper) => paper.id !== editing.id)
+      .slice()
+      .sort((a, b) => a.title.localeCompare(b.title))
+  }, [papers, editing])
 
   useEffect(() => {
     if (!open) return
@@ -65,6 +77,7 @@ export function AddPapersPanel({
       setEditTags(editing.tags.join(', '))
       setEditSourceType(editing.source_type)
       setEditSourceUrl(editing.source_url ?? '')
+      setEditSolutionId(editing.solution_paper_id ?? '')
     } else {
       setRaw('')
       setTitleOverrides({})
@@ -181,6 +194,7 @@ export function AddPapersPanel({
         tags: parseTagInput(editTags),
         source_type: editSourceType,
         source_url: editSourceType === 'official' ? editSourceUrl.trim() : null,
+        solution_paper_id: editSolutionId || null,
       })
       onToast('Paper updated.', 'success')
       onClose()
@@ -242,6 +256,28 @@ export function AddPapersPanel({
               placeholder="Shift 1, 2023, Solutions"
               className={field}
             />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="edit-solution">
+              Answer key (optional)
+            </label>
+            <select
+              id="edit-solution"
+              value={editSolutionId}
+              onChange={(event) => setEditSolutionId(event.target.value)}
+              className={field}
+            >
+              <option value="">No answer key</option>
+              {answerKeyChoices.map((paper) => (
+                <option key={paper.id} value={paper.id}>
+                  {paper.title}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
+              Pick the solution PDF for this paper — its card gets a green “Answer key”
+              button that opens it in Drive.
+            </p>
           </div>
           <SourceFields
             type={editSourceType}

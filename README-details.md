@@ -20,6 +20,7 @@ https://mppolicepyqs.vercel.app
 - Pick a folder, tags and source (Official ESB page + link, or Own work)
 - Edit and delete buttons on every card
 - A small rail on every card: **drag the ⠿ grip, or tap ↑ / ↓**, to set the order everybody sees
+- An **Answer key** picker in the edit form: link a paper to its solution PDF
 
 ## First-time admin login
 
@@ -45,6 +46,29 @@ Two things to know:
 - **The link is only as good as the domain.** The recovery link redirects to
   *Supabase → Authentication → URL Configuration → Site URL*. If the Vercel domain
   changes, that value must change with it, or the e-mail will point at a dead page.
+
+## Answer keys
+
+Every paper can point at its own solution PDF, so a student never has to hunt for the key.
+
+1. Open the solution card → **Edit** → **Answer key (optional)** → choose the paper it
+   belongs to. (Or edit the *paper* and pick its solution — the two cards are linked
+   either way.)
+2. The paper's card then shows a green **Answer key** pill next to its folder chip.
+   Tapping it opens the solution in the Google Drive viewer, exactly like **Open**.
+3. The solution card shows a grey **Question paper** pill that goes back the other way.
+
+Notes:
+
+- **Automatic linking:** when a new PDF is titled `… Solution` and a paper with the same
+  title (minus the word "Solution") exists, the link is created for you. All 15 existing
+  pairs are already linked this way.
+- **Searching** `answer key` now finds the papers that have one; `question paper` finds
+  the matching solutions.
+- **Deleting** either side is safe — `on delete set null` clears the link, so you never
+  get a button pointing at a deleted row.
+- The solution is stored as its own row (`papers.solution_paper_id` points at it), so it
+  keeps its own title, folder, tags and Drive file. No files are duplicated.
 
 ## Profile — username and picture
 
