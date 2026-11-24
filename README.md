@@ -10,6 +10,10 @@ student can tick papers off as **Done** without creating an account.
 - **Data & auth:** Supabase (Postgres + row level security)
 - **Files:** stay in Google Drive — this site only stores the title, Drive file id,
   folder, tags and source link.
+- **Installable:** a PWA with a service worker — add it to the home screen, and the last
+  list of papers stays readable offline (PDFs still open from Drive).
+- **Admin tools:** duplicate guard on upload, bulk edit, and a link check that asks Google
+  Drive whether every paper and answer key still opens.
 
 See [README-details.md](./README-details.md) for setup, admin login, deployment and
 the database schema.
