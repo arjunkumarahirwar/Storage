@@ -881,14 +881,14 @@ export default function App() {
         </div>
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3.5 py-3 text-[12.5px] font-medium text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+          <div className="mt-4 flex items-start gap-2 rounded-2xl border border-danger-200 bg-danger-50 px-3.5 py-3 text-[12.5px] font-medium text-danger-700 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-300">
             <span className="flex-1">
               {t('Could not load the library: {error}', { error: error ?? '' })}
             </span>
             <button
               type="button"
               onClick={() => void reload()}
-              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-brand-300 px-2 py-1 text-[11.5px] font-semibold dark:border-brand-500/40"
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-danger-300 px-2 py-1 text-[11.5px] font-semibold dark:border-danger-500/40"
             >
               <RefreshIcon className="h-3 w-3" /> {t('Retry')}
             </button>
@@ -1085,7 +1085,7 @@ export default function App() {
           type="button"
           onClick={openAdd}
           aria-label={t('Add PDFs')}
-          className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-fab transition hover:bg-brand-700 active:scale-95 sm:hidden"
+          className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-sky-600 text-white shadow-fab transition hover:bg-sky-700 active:scale-95 sm:hidden"
         >
           <PlusIcon className="h-6 w-6" />
         </button>
@@ -1231,10 +1231,10 @@ export default function App() {
           className={[
             'fixed left-4 z-40 flex items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur',
             practice.expired
-              ? 'border-brand-400 bg-brand-50/95 dark:border-brand-500/60 dark:bg-ink-900/95'
+              ? 'border-violet-400 bg-violet-50/95 dark:border-violet-500/60 dark:bg-ink-900/95'
               : practice.nearlyUp
                 ? 'border-amber-300 bg-white/95 dark:border-amber-500/40 dark:bg-ink-900/95'
-                : 'border-brand-200 bg-white/95 dark:border-brand-500/40 dark:bg-ink-900/95',
+                : 'border-violet-200 bg-white/95 dark:border-violet-500/40 dark:bg-ink-900/95',
             selecting ? 'bottom-32' : 'bottom-5',
           ].join(' ')}
           role={practice.expired ? 'status' : undefined}
@@ -1248,20 +1248,20 @@ export default function App() {
             className={[
               'h-3.5 w-3.5 shrink-0',
               practice.expired
-                ? 'text-brand-600 dark:text-brand-300'
+                ? 'text-violet-600 dark:text-violet-300'
                 : practice.nearlyUp
                   ? 'text-amber-600 dark:text-amber-400'
-                  : 'text-brand-600 dark:text-brand-300',
+                  : 'text-violet-600 dark:text-violet-300',
             ].join(' ')}
           />
           <span
             className={[
               'font-mono text-[12.5px] font-bold tabular-nums',
               practice.expired
-                ? 'text-brand-700 dark:text-brand-300'
+                ? 'text-violet-700 dark:text-violet-300'
                 : practice.nearlyUp
                   ? 'text-amber-800 dark:text-amber-300'
-                  : 'text-brand-700 dark:text-brand-300',
+                  : 'text-violet-700 dark:text-violet-300',
             ].join(' ')}
           >
             {practice.expired ? t('Time’s up') : formatClock(practice.remainingMs)}
@@ -1272,7 +1272,7 @@ export default function App() {
               const paper = papersById.get(practice.running?.paperId ?? '')
               if (paper) setPracticeTarget(paper)
             }}
-            className="rounded-full bg-brand-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-700"
+            className="rounded-full bg-violet-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-violet-700"
           >
             {practice.expired ? t('Enter score') : t('Finish')}
           </button>

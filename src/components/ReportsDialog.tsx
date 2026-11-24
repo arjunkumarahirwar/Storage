@@ -21,7 +21,7 @@ interface ReportsDialogProps {
 
 const reasonTone = (report: PaperReport) =>
   report.reason === 'link_broken'
-    ? 'border-brand-200 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300'
+    ? 'border-danger-200 bg-danger-50 text-danger-700 dark:border-danger-500/40 dark:bg-danger-500/10 dark:text-danger-300'
     : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300'
 
 export function ReportsDialog({
@@ -131,12 +131,12 @@ export function ReportsDialog({
       wide
     >
       {error && (
-        <p className="mb-2 flex items-center gap-2 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+        <p className="mb-2 flex items-center gap-2 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
           <span className="flex-1">{error}</span>
           <button
             type="button"
             onClick={onReload}
-            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2 py-1 text-[11.5px] font-semibold dark:border-brand-500/40"
+            className="inline-flex items-center gap-1 rounded-lg border border-danger-300 px-2 py-1 text-[11.5px] font-semibold dark:border-danger-500/40"
           >
             <RefreshIcon className="h-3 w-3" /> {t('Retry')}
           </button>

@@ -192,8 +192,8 @@ exam: the student picks how long they get — quick chips for 30 / 60 / 90 / 120
 into the box, which snaps to the nearest five when it loses focus. Five minutes at the
 shortest, five hours at the longest, and **120 minutes is the default**. *Start & open paper* starts the clock and opens
 the PDF in Drive; the countdown also sits in the bottom-left corner of the site, so it keeps
-running while the student reads or scrolls, and turns amber under five minutes and red at
-zero. When it reaches zero a **bell rings** (three double beeps, made with the Web Audio
+running while the student reads or scrolls, and turns amber under five minutes and violet
+at zero. When it reaches zero a **bell rings** (three double beeps, made with the Web Audio
 API — no sound file, and the phone also vibrates), the card's chip switches to *Time's up*,
 and a toast says so. The run stays open so the score can still be saved; *Enter score* asks
 for marks scored and out of how many (defaults to 100). The card then shows
@@ -482,6 +482,25 @@ Notes:
   function, which refuses to run for anyone but the administrator.
 - If saving fails (no connection, say) the cards snap back to the previous order and a
   red toast appears.
+
+## Colours
+
+The site used to lean on one red accent for everything. It now uses colour to say **what a
+thing does**, not just to decorate:
+
+| Where | Colour |
+| --- | --- |
+| Sign in, Open / Download, filters, chips, links, focus rings, the app icon | Indigo (`brand-*`, `#4f46e5`) |
+| Practice and the countdown — start, timer, *Time's up*, attempts | Violet (`violet-*`) |
+| Saves and happy endings — note, profile, *Send report*, *Mark resolved* | Emerald (`emerald-*`) |
+| Administrator tools — Add PDFs, bulk edit, library check, save default | Sky (`sky-*`) |
+| Warnings — under five minutes left, restricted links, open reports | Amber (`amber-*`) |
+| Errors, invalid fields, broken links, **Delete** | Red (`danger-*` only) |
+
+So red is deliberately rare: it appears on a delete confirmation, a validation message and a
+broken-link marker, nothing else. Everything else picks up `brand-*` (indigo) from
+`tailwind.config.js`, so the whole site changes hue from that one palette. The install icon,
+`favicon.svg` and the manifest `theme_color` were moved to the same indigo.
 
 ## Local development
 

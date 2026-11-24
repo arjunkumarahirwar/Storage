@@ -64,7 +64,7 @@ export function HeroCard({ paperCount, doneCount, lastUpdated, isAdmin, onAdd }:
           <button
             type="button"
             onClick={onAdd}
-            className="hidden shrink-0 items-center gap-1.5 rounded-full bg-brand-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-[0.98] sm:flex"
+            className="hidden shrink-0 items-center gap-1.5 rounded-full bg-sky-600 px-4 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-sky-700 active:scale-[0.98] sm:flex"
           >
             <PlusIcon className="h-4 w-4" /> {t('Add PDFs')}
           </button>
@@ -80,7 +80,7 @@ export function HeroCard({ paperCount, doneCount, lastUpdated, isAdmin, onAdd }:
         </div>
         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-100 dark:bg-ink-800">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-600 transition-[width] duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-[width] duration-500"
             style={{ width: `${percent}%` }}
             role="progressbar"
             aria-valuenow={percent}

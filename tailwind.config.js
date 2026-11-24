@@ -6,11 +6,23 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#fff1f2',
-          100: '#ffe4e6',
-          200: '#fecdd3',
-          300: '#fda4af',
-          400: '#fb7185',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
+        },
+        danger: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
           500: '#ef4444',
           600: '#dc2626',
           700: '#b91c1c',
@@ -49,7 +61,7 @@ export default {
       boxShadow: {
         card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -16px rgba(15, 23, 42, 0.18)',
         lift: '0 2px 6px rgba(15, 23, 42, 0.08), 0 22px 40px -22px rgba(15, 23, 42, 0.35)',
-        fab: '0 10px 24px -8px rgba(220, 38, 38, 0.65)',
+        fab: '0 10px 24px -8px rgba(2, 132, 199, 0.55)',
 surface: 'inset 0 1px 0 rgba(255,255,255,0.06)',
       },
       borderRadius: {

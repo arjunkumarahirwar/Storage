@@ -27,7 +27,7 @@ export function BulkBar({
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-3">
       <div className="pointer-events-auto mx-auto flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-ink-700 bg-ink-900/95 p-2.5 text-white shadow-lift backdrop-blur dark:border-ink-700">
         <div className="flex items-center gap-2 px-1">
-          <LayersIcon className="h-4 w-4 shrink-0 text-brand-300" />
+          <LayersIcon className="h-4 w-4 shrink-0 text-sky-300" />
           <p className="min-w-0 flex-1 text-[12.5px] font-semibold">
             {count === 0
               ? t('Tap a card to pick it')
@@ -62,7 +62,7 @@ export function BulkBar({
             type="button"
             disabled={count === 0}
             onClick={onDelete}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-brand-400/60 bg-brand-600/20 text-[12.5px] font-bold text-white transition hover:bg-brand-600/40 disabled:opacity-40"
+            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-danger-400/60 bg-danger-600/20 text-[12.5px] font-bold text-white transition hover:bg-danger-600/40 disabled:opacity-40"
           >
             <TrashIcon className="h-3.5 w-3.5" /> {t('Delete')}
           </button>

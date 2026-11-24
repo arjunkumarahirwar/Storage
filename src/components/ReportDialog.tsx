@@ -85,7 +85,7 @@ export function ReportDialog({
           <button
             type="button"
             onClick={onClose}
-            className="h-11 w-full rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700"
+            className="h-11 w-full rounded-xl bg-emerald-600 text-[14px] font-semibold text-white transition hover:bg-emerald-700"
           >
             {t('Done')}
           </button>
@@ -146,7 +146,7 @@ export function ReportDialog({
           </label>
 
           {error && (
-            <p className="flex items-start gap-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+            <p className="flex items-start gap-1.5 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
               <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {error}
             </p>
           )}
@@ -154,7 +154,7 @@ export function ReportDialog({
           <button
             type="submit"
             disabled={busy || !paper}
-            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
           >
             {busy && <LoaderIcon className="h-4 w-4" />}
             {t('Send report')}

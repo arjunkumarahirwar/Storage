@@ -29,7 +29,7 @@ const statusTone: Record<LinkStatus, string> = {
   restricted:
     'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
   missing:
-    'bg-brand-50 text-brand-700 border-brand-200 dark:bg-brand-500/10 dark:text-brand-300 dark:border-brand-500/30',
+    'bg-danger-50 text-danger-700 border-danger-200 dark:bg-danger-500/10 dark:text-danger-300 dark:border-danger-500/30',
   unknown:
     'bg-ink-100 text-ink-600 border-ink-200 dark:bg-ink-800 dark:text-ink-300 dark:border-ink-700',
 }
@@ -121,7 +121,7 @@ export function LibraryCheckDialog({
                 type="button"
                 onClick={onCheck}
                 disabled={health.checking || !links.length}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 text-[11.5px] font-bold text-white transition hover:bg-brand-700 disabled:opacity-60"
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-sky-600 px-2.5 text-[11.5px] font-bold text-white transition hover:bg-sky-700 disabled:opacity-60"
               >
                 <RefreshIcon className={classNames('h-3.5 w-3.5', health.checking && 'animate-spin')} />
                 {health.checking
@@ -137,7 +137,7 @@ export function LibraryCheckDialog({
             <div className="mt-2">
               <div className="h-1.5 overflow-hidden rounded-full bg-ink-100 dark:bg-ink-800">
                 <div
-                  className="h-full rounded-full bg-brand-500 transition-[width] duration-300"
+                  className="h-full rounded-full bg-sky-500 transition-[width] duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -215,7 +215,7 @@ export function LibraryCheckDialog({
                       type="button"
                       onClick={() => onDelete(link.paper)}
                       aria-label={t('Delete {title}', { title: link.paper.title })}
-                      className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                      className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15"
                     >
                       <TrashIcon className="h-3.5 w-3.5" />
                     </button>
@@ -275,7 +275,7 @@ export function LibraryCheckDialog({
                           type="button"
                           onClick={() => onDelete(paper)}
                           aria-label={t('Delete {title}', { title: paper.title })}
-                          className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                          className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15"
                         >
                           <TrashIcon className="h-3.5 w-3.5" />
                         </button>

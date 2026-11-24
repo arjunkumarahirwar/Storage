@@ -188,7 +188,7 @@ export function ProfileDialog({
         )}
 
         {error && (
-          <p className="flex items-start gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-[12px] font-medium text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
+          <p className="flex items-start gap-1.5 rounded-xl border border-danger-200 bg-danger-50 px-3 py-2 text-[12px] font-medium text-danger-700 dark:border-danger-500/30 dark:bg-danger-500/10 dark:text-danger-300">
             <AlertIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{error}</span>
           </p>
@@ -197,7 +197,7 @@ export function ProfileDialog({
         <button
           type="submit"
           disabled={!canSave}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy && <LoaderIcon className="h-4 w-4 animate-spin" />}
           {busy ? t('Saving…') : required ? t('Create my profile') : t('Save changes')}

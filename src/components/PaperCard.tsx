@@ -193,7 +193,7 @@ export function PaperCard({
               className={classNames(
                 'absolute right-1 top-1 h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-ink-900',
                 health === 'missing'
-                  ? 'bg-brand-600'
+                  ? 'bg-danger-600'
                   : health === 'restricted'
                     ? 'bg-amber-500'
                     : 'bg-ink-400',
@@ -235,7 +235,7 @@ export function PaperCard({
                   type="button"
                   onClick={onDelete}
                   aria-label={`Delete ${paper.title}`}
-                  className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15 dark:hover:text-brand-300"
+                  className="grid h-7 w-7 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15 dark:hover:text-danger-300"
                 >
                   <TrashIcon className="h-3.5 w-3.5" />
                 </button>
@@ -277,7 +277,7 @@ export function PaperCard({
                   note.difficulty === 'easy'
                     ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
                     : note.difficulty === 'hard'
-                      ? 'border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300'
+                      ? 'border-danger-300 bg-danger-50 text-danger-700 dark:border-danger-500/40 dark:bg-danger-500/10 dark:text-danger-300'
                       : 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300',
                 )}
               >
@@ -293,7 +293,7 @@ export function PaperCard({
               <span
                 className={
                   practiceExpired
-                    ? 'inline-flex items-center gap-1 rounded-md border border-brand-300 bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300'
+                    ? 'inline-flex items-center gap-1 rounded-md border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-[11px] font-bold text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-300'
                     : 'inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
                 }
               >

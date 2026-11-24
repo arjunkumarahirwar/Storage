@@ -194,7 +194,7 @@ export function AuthDialog({
         </label>
 
         {error && (
-          <p className="flex items-start gap-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+          <p className="flex items-start gap-1.5 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
             <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {error}
           </p>
         )}

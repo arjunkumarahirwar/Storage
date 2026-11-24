@@ -194,7 +194,7 @@ export function BulkEditDialog({
                   setClearYear(event.target.checked)
                   if (event.target.checked) setYear('')
                 }}
-                className="h-3.5 w-3.5 rounded border-ink-300 accent-brand-600"
+                className="h-3.5 w-3.5 rounded border-ink-300 accent-sky-600"
               />
               {t('Clear the year on these papers')}
             </label>
@@ -220,7 +220,7 @@ export function BulkEditDialog({
         </div>
 
         {error && (
-          <p className="flex items-start gap-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+          <p className="flex items-start gap-1.5 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
             <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {error}
           </p>
         )}
@@ -237,7 +237,7 @@ export function BulkEditDialog({
           <button
             type="submit"
             disabled={busy}
-            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 text-[13.5px] font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
           >
             {busy && <LoaderIcon className="h-4 w-4" />}
             {t('Apply to {count}', { count })}

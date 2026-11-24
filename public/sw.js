@@ -14,7 +14,7 @@
  * a hashed filename can never change.
  */
 
-const VERSION = 'v1'
+const VERSION = 'v2'
 const SHELL = `pyq-shell-${VERSION}`
 const ASSETS = `pyq-assets-${VERSION}`
 const DATA = `pyq-data-${VERSION}`

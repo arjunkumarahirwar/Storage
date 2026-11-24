@@ -405,7 +405,7 @@ export function AddPapersPanel({
               )}
             </p>
             {editLibraryCheck.blocked && (
-              <p className="mt-1 flex items-start gap-1.5 text-[11.5px] font-semibold text-brand-700 dark:text-brand-300">
+              <p className="mt-1 flex items-start gap-1.5 text-[11.5px] font-semibold text-danger-700 dark:text-danger-300">
                 <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {editLibraryCheck.blocked}
               </p>
             )}
@@ -474,7 +474,7 @@ export function AddPapersPanel({
                     key={row.key}
                     className={[
                       'rounded-xl border bg-white p-2 dark:bg-ink-900',
-                      invalid ? 'border-brand-300 dark:border-brand-500/40' : 'border-ink-200 dark:border-ink-700',
+                      invalid ? 'border-danger-300 dark:border-danger-500/40' : 'border-ink-200 dark:border-ink-700',
                     ].join(' ')}
                   >
                     <div className="flex items-center gap-1.5">
@@ -507,7 +507,7 @@ export function AddPapersPanel({
                           setTitleOverrides({})
                           setKeyOverrides({})
                         }}
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15"
                       >
                         <XIcon className="h-3.5 w-3.5" />
                       </button>
@@ -516,7 +516,7 @@ export function AddPapersPanel({
                       className={[
                         'mt-1 truncate px-1 font-mono text-[10.5px]',
                         invalid || row.library.blocked
-                          ? 'text-brand-600 dark:text-brand-300'
+                          ? 'text-danger-600 dark:text-danger-300'
                           : 'text-ink-400',
                       ].join(' ')}
                     >
@@ -527,7 +527,7 @@ export function AddPapersPanel({
                           : row.fileId}
                     </p>
                     {row.library.blocked && (
-                      <p className="mt-0.5 flex items-start gap-1 px-1 text-[10.5px] font-semibold text-brand-700 dark:text-brand-300">
+                      <p className="mt-0.5 flex items-start gap-1 px-1 text-[10.5px] font-semibold text-danger-700 dark:text-danger-300">
                         <AlertIcon className="mt-px h-3 w-3 shrink-0" /> {row.library.blocked}
                       </p>
                     )}
@@ -554,7 +554,7 @@ export function AddPapersPanel({
                           className={[
                             'h-7 min-w-0 flex-1 rounded-lg border px-2 font-mono text-[10.5px] text-ink-800 placeholder:font-sans placeholder:text-ink-400 focus:outline-none focus:ring-2 dark:bg-ink-800 dark:text-ink-100',
                             row.answerError
-                              ? 'border-brand-300 bg-white focus:ring-brand-500/20 dark:border-brand-500/50'
+                              ? 'border-danger-300 bg-white focus:ring-danger-500/20 dark:border-danger-500/50'
                               : row.answerFileId
                                 ? 'border-emerald-300 bg-emerald-50/60 focus:ring-emerald-500/20 dark:border-emerald-500/40 dark:bg-emerald-500/10'
                                 : 'border-dashed border-ink-300 bg-white focus:ring-emerald-500/20 dark:border-ink-600 dark:bg-ink-800',
@@ -567,14 +567,14 @@ export function AddPapersPanel({
                             onClick={() =>
                               setKeyOverrides((current) => ({ ...current, [row.key]: '' }))
                             }
-                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15"
                           >
                             <XIcon className="h-3 w-3" />
                           </button>
                         )}
                       </div>
                       {row.answerError ? (
-                        <p className="mt-0.5 px-1 text-[10.5px] font-medium text-brand-600 dark:text-brand-300">
+                        <p className="mt-0.5 px-1 text-[10.5px] font-medium text-danger-600 dark:text-danger-300">
                           {t(row.answerError)}
                         </p>
                       ) : row.answerFileId ? (
@@ -763,7 +763,7 @@ function SourceFields({
             className={[
               'rounded-lg border px-2 py-1.5 text-[12px] font-semibold transition',
               type === option.value
-                ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500/50 dark:bg-brand-500/15 dark:text-brand-200'
+                ? 'border-sky-500 bg-sky-50 text-sky-700 dark:border-sky-500/50 dark:bg-sky-500/15 dark:text-sky-200'
                 : 'border-ink-200 text-ink-500 hover:border-ink-300 dark:border-ink-700 dark:text-ink-400',
             ].join(' ')}
           >
@@ -787,7 +787,7 @@ function SourceFields({
 function FormError({ message }: { message: string | null }) {
   if (!message) return null
   return (
-    <p className="flex items-start gap-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+    <p className="flex items-start gap-1.5 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
       <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {message}
     </p>
   )
@@ -816,7 +816,7 @@ function Actions({
       <button
         type="submit"
         disabled={busy}
-        className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+        className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-sky-600 text-[13.5px] font-semibold text-white transition hover:bg-sky-700 disabled:opacity-60"
       >
         {busy && <LoaderIcon className="h-4 w-4" />}
         {submitLabel}

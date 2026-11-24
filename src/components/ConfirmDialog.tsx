@@ -55,7 +55,7 @@ export function ConfirmDialog({
           type="button"
           onClick={run}
           disabled={busy}
-          className="h-10 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+          className="h-10 flex-1 rounded-xl bg-danger-600 text-[13.5px] font-semibold text-white transition hover:bg-danger-700 disabled:opacity-60"
         >
           {busy ? t('Deleting…') : t(confirmLabel)}
         </button>

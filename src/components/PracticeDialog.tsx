@@ -184,18 +184,18 @@ export function PracticeDialog({
             className={classNames(
               'rounded-2xl border px-4 py-5 text-center',
               expired
-                ? 'border-brand-300 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/15'
+                ? 'border-violet-300 bg-violet-50 dark:border-violet-500/50 dark:bg-violet-500/15'
                 : nearlyUp
                   ? 'border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-500/10'
-                  : 'border-brand-200 bg-brand-50/60 dark:border-brand-500/40 dark:bg-brand-500/10',
+                  : 'border-violet-200 bg-violet-50/60 dark:border-violet-500/40 dark:bg-violet-500/10',
             )}
           >
             <p
               className={classNames(
                 'text-[11px] font-bold uppercase tracking-[0.14em]',
                 expired
-                  ? 'text-brand-700 dark:text-brand-300'
-                  : 'text-brand-700 dark:text-brand-300',
+                  ? 'text-violet-700 dark:text-violet-300'
+                  : 'text-violet-700 dark:text-violet-300',
               )}
             >
               {expired ? t('Time’s up') : t('Time left')}
@@ -204,7 +204,7 @@ export function PracticeDialog({
               className={classNames(
                 'mt-1 font-mono text-[34px] font-bold leading-none tracking-tight tabular-nums',
                 expired
-                  ? 'text-brand-700 dark:text-brand-300'
+                  ? 'text-violet-700 dark:text-violet-300'
                   : nearlyUp
                     ? 'text-amber-800 dark:text-amber-300'
                     : 'text-ink-900 dark:text-white',
@@ -229,7 +229,7 @@ export function PracticeDialog({
             <button
               type="button"
               onClick={() => setScoring(true)}
-              className="h-10 flex-1 rounded-xl bg-brand-600 text-[13px] font-semibold text-white transition hover:bg-brand-700"
+              className="h-10 flex-1 rounded-xl bg-violet-600 text-[13px] font-semibold text-white transition hover:bg-violet-700"
             >
               {expired ? t('Enter score') : t('Finish & enter score')}
             </button>
@@ -237,7 +237,7 @@ export function PracticeDialog({
           <button
             type="button"
             onClick={stopTimer}
-            className="w-full text-center text-[12px] font-semibold text-ink-400 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
+            className="w-full text-center text-[12px] font-semibold text-ink-400 transition hover:text-violet-600 dark:text-ink-500 dark:hover:text-violet-300"
           >
             {t('Cancel this practice')}
           </button>
@@ -279,7 +279,7 @@ export function PracticeDialog({
             {t('Time taken:')} <span className="font-semibold">{formatClock(elapsedMs)}</span>
           </p>
           {error && (
-            <p className="rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+            <p className="rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
               {error}
             </p>
           )}
@@ -295,7 +295,7 @@ export function PracticeDialog({
             <button
               type="submit"
               disabled={busy}
-              className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+              className="h-11 flex-1 rounded-xl bg-violet-600 text-[13.5px] font-semibold text-white transition hover:bg-violet-700 disabled:opacity-60"
             >
               {busy ? t('Saving…') : t('Save attempt')}
             </button>
@@ -335,7 +335,7 @@ export function PracticeDialog({
                     className={classNames(
                       'h-9 rounded-xl border px-3 text-[12.5px] font-semibold transition',
                       chosenMinutes === option
-                        ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500/50 dark:bg-brand-500/15 dark:text-brand-200'
+                        ? 'border-violet-500 bg-violet-50 text-violet-700 dark:border-violet-500/50 dark:bg-violet-500/15 dark:text-violet-200'
                         : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300',
                     )}
                   >
@@ -381,7 +381,7 @@ export function PracticeDialog({
                 </div>
               </div>
               {error && (
-                <p className="mt-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                <p className="mt-1.5 rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
                   {error}
                 </p>
               )}
@@ -436,7 +436,7 @@ export function PracticeDialog({
                     <button
                       type="submit"
                       disabled={savingDefault}
-                      className="ml-auto h-8 rounded-lg border border-brand-200 px-2.5 text-[11.5px] font-semibold text-brand-700 transition hover:bg-brand-50 disabled:opacity-60 dark:border-brand-500/40 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                      className="ml-auto h-8 rounded-lg border border-sky-200 px-2.5 text-[11.5px] font-semibold text-sky-700 transition hover:bg-sky-50 disabled:opacity-60 dark:border-sky-500/40 dark:text-sky-300 dark:hover:bg-sky-500/10"
                     >
                       {savingDefault ? t('Saving…') : t('Save default')}
                     </button>
@@ -457,7 +457,7 @@ export function PracticeDialog({
                 onStart(chosenMinutes)
                 if (paper) window.open(driveViewUrl(paper.drive_file_id), '_blank', 'noopener')
               }}
-              className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+              className="h-11 flex-1 rounded-xl bg-violet-600 text-[13.5px] font-semibold text-white transition hover:bg-violet-700 disabled:opacity-50"
             >
               {t('Start & open paper')}
             </button>
@@ -493,7 +493,7 @@ export function PracticeDialog({
                         ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
                         : percent >= 45
                           ? 'bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
-                          : 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300',
+                          : 'bg-danger-50 text-danger-700 dark:bg-danger-500/15 dark:text-danger-300',
                     )}
                   >
                     {attempt.score}/{attempt.total}
@@ -509,7 +509,7 @@ export function PracticeDialog({
                     type="button"
                     onClick={() => onRemoveAttempt(attempt.id)}
                     aria-label={t('Remove this attempt')}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/15"
                   >
                     <TrashIcon className="h-3.5 w-3.5" />
                   </button>

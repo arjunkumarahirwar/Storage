@@ -154,8 +154,8 @@ const check = (name, ok, detail = '') => {
 
 // 1. install
 await dispatchInstall()
-const shell = await caches.open('pyq-shell-v1')
-const assets = await caches.open('pyq-assets-v1')
+const shell = await caches.open('pyq-shell-v2')
+const assets = await caches.open('pyq-assets-v2')
 check('install caches index.html', Boolean(await shell.match('/index.html')))
 check('install caches "/"', Boolean(await shell.match('/')))
 check('install caches the hashed bundle', Boolean(await assets.match('/assets/index-abc.js')))
@@ -186,7 +186,7 @@ res = await dispatchFetch(papersReq())
 check('offline papers come from the cache', (await res.text()).includes('A paper'))
 
 // 6. offline with nothing cached -> the app must see a rejection, not fake data
-cachesByName.delete('pyq-data-v1')
+cachesByName.delete('pyq-data-v2')
 let threw = false
 try {
   await dispatchFetch(papersReq())
@@ -211,7 +211,7 @@ await dispatchActivate()
 check('stale version caches are deleted', !(await caches.keys()).includes('pyq-shell-v0'))
 
 // 9b. the page's "warm" message pre-saves the listing for a fresh install
-cachesByName.delete('pyq-data-v1')
+cachesByName.delete('pyq-data-v2')
 online = true
 const dispatchMessage = (data) => {
   let done

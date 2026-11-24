@@ -22,7 +22,7 @@ export function Toasts({ toasts, onDismiss }: ToastsProps) {
             toast.tone === 'success'
               ? 'border-emerald-200 bg-white text-emerald-800 dark:border-emerald-500/30 dark:bg-ink-900 dark:text-emerald-200'
               : toast.tone === 'error'
-                ? 'border-brand-200 bg-white text-brand-700 dark:border-brand-500/30 dark:bg-ink-900 dark:text-brand-200'
+                ? 'border-danger-200 bg-white text-danger-700 dark:border-danger-500/30 dark:bg-ink-900 dark:text-danger-200'
                 : 'border-ink-200 bg-white text-ink-700 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100',
           ].join(' ')}
         >

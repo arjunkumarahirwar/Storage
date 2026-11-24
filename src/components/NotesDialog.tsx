@@ -103,7 +103,7 @@ export function NotesDialog({
                       ? option.value === 'easy'
                         ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:border-emerald-400/50 dark:bg-emerald-500/10 dark:text-emerald-300'
                         : option.value === 'hard'
-                          ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500/50 dark:bg-brand-500/10 dark:text-brand-300'
+                          ? 'border-danger-500 bg-danger-50 text-danger-700 dark:border-danger-500/50 dark:bg-danger-500/10 dark:text-danger-300'
                           : 'border-amber-500 bg-amber-50 text-amber-800 dark:border-amber-400/50 dark:bg-amber-500/10 dark:text-amber-300'
                       : 'border-ink-200 bg-white text-ink-500 hover:border-ink-300 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400',
                   )}
@@ -136,7 +136,7 @@ export function NotesDialog({
         </label>
 
         {error && (
-          <p className="rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+          <p className="rounded-xl bg-danger-50 px-2.5 py-2 text-[12.5px] font-medium text-danger-700 dark:bg-danger-500/10 dark:text-danger-300">
             {error}
           </p>
         )}
@@ -155,7 +155,7 @@ export function NotesDialog({
           <button
             type="submit"
             disabled={busy}
-            className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+            className="h-11 flex-1 rounded-xl bg-emerald-600 text-[13.5px] font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
           >
             {busy ? t('Saving…') : t('Save note')}
           </button>
