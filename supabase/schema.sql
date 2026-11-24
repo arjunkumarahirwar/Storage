@@ -322,6 +322,25 @@ create trigger paper_notes_touch_updated_at
   before update on public.paper_notes
   for each row execute function public.touch_updated_at();
 
+-- ----------------------------------------------------------- app settings ---
+-- The few things the administrator decides once for the whole library. Right
+-- now that is one number: how long a practice paper runs before the bell.
+-- Everyone reads it; only the administrator writes it (RLS below).
+create table if not exists public.app_settings (
+  key        text primary key,
+  value      jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+drop trigger if exists app_settings_touch_updated_at on public.app_settings;
+create trigger app_settings_touch_updated_at
+  before update on public.app_settings
+  for each row execute function public.touch_updated_at();
+
+insert into public.app_settings (key, value)
+values ('practice_default_minutes', '120'::jsonb)
+on conflict (key) do nothing;
+
 -- --------------------------------------------------------- admin check ------
 -- The library administrator is whoever signs in with this confirmed email.
 -- Change the address here to hand the library to another account.
@@ -348,6 +367,7 @@ alter table public.profiles enable row level security;
 alter table public.paper_reports enable row level security;
 alter table public.paper_notes enable row level security;
 alter table public.practice_attempts enable row level security;
+alter table public.app_settings enable row level security;
 
 drop policy if exists "Anyone can read the library" on public.papers;
 create policy "Anyone can read the library"
@@ -493,6 +513,20 @@ create policy "Delete only your own attempts"
   to authenticated
   using ((select auth.uid()) = user_id);
 
+-- ------------------------------------------------------------- settings ------
+drop policy if exists "Anyone can read the settings" on public.app_settings;
+create policy "Anyone can read the settings"
+  on public.app_settings for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Only the administrator changes the settings" on public.app_settings;
+create policy "Only the administrator changes the settings"
+  on public.app_settings for all
+  to authenticated
+  using (public.is_library_admin())
+  with check (public.is_library_admin());
+
 -- ------------------------------------------------------- avatars (storage) --
 -- Public bucket; every person may only write inside their own <user-id>/ folder.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -525,6 +559,8 @@ create policy "Users manage their own avatar"
 grant select on public.papers to anon, authenticated;
 grant insert, update, delete on public.papers to authenticated;
 grant select, insert, update, delete on public.paper_progress to authenticated;
+grant select on public.app_settings to anon, authenticated;
+grant insert, update, delete on public.app_settings to authenticated;
 grant select on public.profiles to anon, authenticated;
 grant insert, update on public.profiles to authenticated;
 -- Reporting is open to guests; reading and closing reports is admin-only (RLS).

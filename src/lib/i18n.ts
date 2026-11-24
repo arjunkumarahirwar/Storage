@@ -177,8 +177,32 @@ const hi: Record<string, string> = {
   'A timer is already running on “{title}”. Finish or cancel that one first.':
     '“{title}” पर टाइमर पहले से चल रहा है। पहले उसे खत्म या रद्द करें।',
   'Stop that timer': 'वह टाइमर रोकें',
-  'Start the clock, open the paper in Drive, solve it, then come back here and enter your score. The timer keeps running while you are away.':
-    'टाइमर शुरू करें, Drive में पेपर खोलें, हल करें, फिर यहाँ आकर अंक डालें। आपके जाने पर भी टाइमर चलता रहता है।',
+  'Choose how long you get, start the clock and open the paper in Drive. A bell rings when the time is up, and you enter your score here.':
+    'तय करें कि कितना समय मिलेगा, फिर घड़ी शुरू करके Drive में पेपर खोलें। समय खत्म होने पर घंटी बजेगी, और अंक यहाँ डालें।',
+  'The clock is counting down. Open the paper in Google Drive, and come back here to stop the clock and save your score — it keeps running while you are away.':
+    'घड़ी उलटी गिनती कर रही है। Google Drive में पेपर खोलें, और घड़ी रोककर अंक सेव करने के लिए यहाँ वापस आएँ — आपके जाने पर भी यह चलती रहती है।',
+  'The clock reached zero. Save the marks you scored.':
+    'घड़ी शून्य पर पहुँच गई। अपने अंक सेव करें।',
+  'Time’s up': 'समय खत्म',
+  'Time left': 'बचा समय',
+  'of {minutes} min': '{minutes} मिनट में से',
+  '{time} left': '{time} बचा',
+  'Time’s up — the clock stopped. Enter your score when you are ready.':
+    'समय खत्म — घड़ी रुक गई। तैयार हों तो अपने अंक डालें।',
+  'Enter score': 'अंक डालें',
+  'Enter your score': 'अपने अंक डालें',
+  'Time allowed': 'कितना समय',
+  min: 'मिनट',
+  Minutes: 'मिनट',
+  'Default for everyone': 'सबके लिए डिफ़ॉल्ट',
+  'Default minutes': 'डिफ़ॉल्ट मिनट',
+  'Save default': 'डिफ़ॉल्ट सेव करें',
+  'Default time saved.': 'डिफ़ॉल्ट समय सेव हो गया।',
+  'Could not save the default time.': 'डिफ़ॉल्ट समय सेव नहीं हो सका।',
+  'Could not save the default time. Only the admin can change it.':
+    'डिफ़ॉल्ट समय सेव नहीं हो सका। इसे सिर्फ़ एडमिन बदल सकता है।',
+  'Only the admin can change this. Every student starts here.':
+    'इसे सिर्फ़ एडमिन बदल सकता है। हर स्टूडेंट यहीं से शुरू करता है।',
   'Timer stopped — nothing was saved.': 'टाइमर रोक दिया — कुछ सेव नहीं हुआ।',
   'Enter the marks you scored.': 'अपने अंक डालें।',
   'Enter the total marks.': 'कुल अंक डालें।',

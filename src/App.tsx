@@ -42,6 +42,7 @@ import { usePractice } from './hooks/usePractice'
 import { useProfile } from './hooks/useProfile'
 import { usePwa } from './hooks/usePwa'
 import { useProgress } from './hooks/useProgress'
+import { useSettings } from './hooks/useSettings'
 import { useReports } from './hooks/useReports'
 import { useTheme } from './hooks/useTheme'
 import { useToasts } from './hooks/useToasts'
@@ -139,6 +140,7 @@ export default function App() {
   const reports = useReports(auth.isAdmin)
   const notes = useNotes(auth.session?.user.id ?? null)
   const practice = usePractice(auth.session?.user.id ?? null)
+  const settings = useSettings()
   const health = useLinkHealth()
   const pwa = usePwa()
 
@@ -603,6 +605,19 @@ export default function App() {
     }
   }, [loading, papers.length, category, categories, push])
 
+  // The bell is rung by the timer itself; this is the line that tells a student
+  // who was reading somewhere else in the app.
+  const rungToastFor = useRef<number | null>(null)
+  useEffect(() => {
+    if (!practice.running) {
+      rungToastFor.current = null
+      return
+    }
+    if (!practice.expired || rungToastFor.current === practice.running.startedAt) return
+    rungToastFor.current = practice.running.startedAt
+    push('Time’s up — the clock stopped. Enter your score when you are ready.', 'info')
+  }, [practice.running, practice.expired, push])
+
   // A timer left running on a paper that has since been deleted goes away.
   useEffect(() => {
     if (loading || !papers.length) return
@@ -1022,6 +1037,9 @@ export default function App() {
                 note={notes.notes.get(paper.id)}
                 attempts={practice.attempts.get(paper.id)}
                 practiceRunning={practice.running?.paperId === paper.id}
+                practiceExpired={
+                  practice.running?.paperId === paper.id && practice.expired
+                }
                 onToggleDone={() => void progress.toggleDone(paper.id)}
                 onShare={() => void share(paper)}
                 onPractice={() => setPracticeTarget(paper)}
@@ -1207,16 +1225,46 @@ export default function App() {
         }}
       />
 
+      {/* The countdown pill: read out only when the time runs out, never every second. */}
       {practice.running && (
         <div
           className={[
-            'fixed left-4 z-40 flex items-center gap-1.5 rounded-full border border-brand-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur dark:border-brand-500/40 dark:bg-ink-900/95',
+            'fixed left-4 z-40 flex items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur',
+            practice.expired
+              ? 'border-brand-400 bg-brand-50/95 dark:border-brand-500/60 dark:bg-ink-900/95'
+              : practice.nearlyUp
+                ? 'border-amber-300 bg-white/95 dark:border-amber-500/40 dark:bg-ink-900/95'
+                : 'border-brand-200 bg-white/95 dark:border-brand-500/40 dark:bg-ink-900/95',
             selecting ? 'bottom-32' : 'bottom-5',
           ].join(' ')}
+          role={practice.expired ? 'status' : undefined}
+          aria-label={
+            practice.expired
+              ? t('Time’s up')
+              : t('{time} left', { time: formatClock(practice.remainingMs) })
+          }
         >
-          <ClockIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-300" />
-          <span className="font-mono text-[12.5px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
-            {formatClock(practice.elapsedMs)}
+          <ClockIcon
+            className={[
+              'h-3.5 w-3.5 shrink-0',
+              practice.expired
+                ? 'text-brand-600 dark:text-brand-300'
+                : practice.nearlyUp
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-brand-600 dark:text-brand-300',
+            ].join(' ')}
+          />
+          <span
+            className={[
+              'font-mono text-[12.5px] font-bold tabular-nums',
+              practice.expired
+                ? 'text-brand-700 dark:text-brand-300'
+                : practice.nearlyUp
+                  ? 'text-amber-800 dark:text-amber-300'
+                  : 'text-brand-700 dark:text-brand-300',
+            ].join(' ')}
+          >
+            {practice.expired ? t('Time’s up') : formatClock(practice.remainingMs)}
           </span>
           <button
             type="button"
@@ -1226,7 +1274,7 @@ export default function App() {
             }}
             className="rounded-full bg-brand-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-700"
           >
-            {t('Finish')}
+            {practice.expired ? t('Enter score') : t('Finish')}
           </button>
         </div>
       )}
@@ -1249,13 +1297,20 @@ export default function App() {
             ? (papersById.get(practice.running.paperId)?.title ?? null)
             : null
         }
+        runningMinutes={practice.running?.minutes ?? settings.defaultMinutes}
+        remainingMs={practice.remainingMs}
         elapsedMs={practice.elapsedMs}
+        expired={practice.expired}
+        nearlyUp={practice.nearlyUp}
+        defaultMinutes={settings.defaultMinutes}
+        isAdmin={auth.isAdmin}
+        onSaveDefault={settings.saveDefaultMinutes}
         attempts={
           practiceTarget ? (practice.attempts.get(practiceTarget.id) ?? []) : []
         }
         onClose={() => setPracticeTarget(null)}
-        onStart={() => {
-          if (practiceTarget) practice.start(practiceTarget.id)
+        onStart={(minutes) => {
+          if (practiceTarget) practice.start(practiceTarget.id, minutes)
         }}
         onCancelTimer={practice.cancel}
         onFinish={async (score, total) => {

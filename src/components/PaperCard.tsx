@@ -54,6 +54,8 @@ interface PaperCardProps {
   /** The administrator's last link check for this paper's Drive file. */
   health?: LinkStatus | null
   practiceRunning?: boolean
+  /** That timer has reached zero. */
+  practiceExpired?: boolean
   onToggleDone: () => void
   onShare: () => void
   onPractice: () => void
@@ -88,6 +90,7 @@ export function PaperCard({
   onToggleSelect,
   health,
   practiceRunning = false,
+  practiceExpired = false,
   onToggleDone,
   onShare,
   onPractice,
@@ -287,8 +290,15 @@ export function PaperCard({
               </span>
             )}
             {practiceRunning && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">
-                <ClockIcon className="h-3 w-3" /> {t('Timer running')}
+              <span
+                className={
+                  practiceExpired
+                    ? 'inline-flex items-center gap-1 rounded-md border border-brand-300 bg-brand-50 px-1.5 py-0.5 text-[11px] font-bold text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300'
+                    : 'inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                }
+              >
+                <ClockIcon className="h-3 w-3" />{' '}
+                {practiceExpired ? t('Time’s up') : t('Timer running')}
               </span>
             )}
             {!practiceRunning && attempts && attempts.length > 0 && (

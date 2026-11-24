@@ -4,6 +4,11 @@ import { ClockIcon, ExternalIcon, TrashIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames, formatClock, formatDate, formatDuration } from '../lib/format'
 import { driveViewUrl } from '../lib/drive'
+import {
+  MAX_PRACTICE_MINUTES,
+  MIN_PRACTICE_MINUTES,
+  clampMinutes,
+} from '../lib/countdown'
 import type { Paper, PracticeAttempt } from '../lib/types'
 
 interface PracticeDialogProps {
@@ -12,22 +17,44 @@ interface PracticeDialogProps {
   /** The timer that is running right now, whichever paper it belongs to. */
   runningPaperId: string | null
   runningTitle: string | null
+  /** Minutes the running attempt was given. */
+  runningMinutes: number
+  /** Milliseconds left on that timer. */
+  remainingMs: number
+  /** Milliseconds worked so far, capped at the time allowed. */
   elapsedMs: number
+  /** The clock has reached zero. */
+  expired: boolean
+  /** Under five minutes left. */
+  nearlyUp: boolean
+  /** The administrator's default, in minutes. */
+  defaultMinutes: number
+  isAdmin: boolean
+  onSaveDefault: (minutes: number) => Promise<void>
   attempts: PracticeAttempt[]
   onClose: () => void
-  onStart: () => void
+  onStart: (minutes: number) => void
   onCancelTimer: () => void
   onFinish: (score: number, total: number) => Promise<void>
   onRemoveAttempt: (id: string) => void
   onSuccess: (message: string) => void
 }
 
+const QUICK_MINUTES = [30, 60, 90, 120]
+
 export function PracticeDialog({
   open,
   paper,
   runningPaperId,
   runningTitle,
+  runningMinutes,
+  remainingMs,
   elapsedMs,
+  expired,
+  nearlyUp,
+  defaultMinutes,
+  isAdmin,
+  onSaveDefault,
   attempts,
   onClose,
   onStart,
@@ -40,6 +67,9 @@ export function PracticeDialog({
   const [scoring, setScoring] = useState(false)
   const [score, setScore] = useState('')
   const [total, setTotal] = useState('100')
+  const [minutes, setMinutes] = useState(String(defaultMinutes))
+  const [defaultDraft, setDefaultDraft] = useState(String(defaultMinutes))
+  const [savingDefault, setSavingDefault] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -48,11 +78,33 @@ export function PracticeDialog({
     setScoring(false)
     setScore('')
     setTotal('100')
+    setMinutes(String(defaultMinutes))
+    setDefaultDraft(String(defaultMinutes))
     setError(null)
-  }, [open, paper?.id])
+  }, [open, paper?.id, defaultMinutes])
 
   const thisPaperRunning = Boolean(paper && runningPaperId === paper.id)
   const otherPaperRunning = Boolean(runningPaperId && !thisPaperRunning)
+  const chosenMinutes = clampMinutes(Number(minutes))
+
+  const saveDefault = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setSavingDefault(true)
+    setError(null)
+    try {
+      const safe = clampMinutes(Number(defaultDraft))
+      await onSaveDefault(safe)
+      setDefaultDraft(String(safe))
+      setMinutes(String(safe))
+      onSuccess('Default time saved.')
+    } catch (caught) {
+      setError(
+        t(caught instanceof Error ? caught.message : 'Could not save the default time.'),
+      )
+    } finally {
+      setSavingDefault(false)
+    }
+  }
 
   const saveScore = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -83,17 +135,36 @@ export function PracticeDialog({
     }
   }
 
+  const stopTimer = () => {
+    onCancelTimer()
+    onSuccess(t('Timer stopped — nothing was saved.'))
+  }
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={thisPaperRunning && !scoring ? t('Practice running') : t('Timed practice')}
+      title={
+        scoring
+          ? t('Enter your score')
+          : thisPaperRunning
+            ? expired
+              ? t('Time’s up')
+              : t('Practice running')
+            : t('Timed practice')
+      }
       description={
         scoring
           ? t('Enter the marks you scored once you have checked your answers.')
-          : t(
-              'The timer runs while you solve the paper in Google Drive. Stop it when you finish and note your score — it is saved for you.',
-            )
+          : thisPaperRunning
+            ? expired
+              ? t('The clock reached zero. Save the marks you scored.')
+              : t(
+                  'The clock is counting down. Open the paper in Google Drive, and come back here to stop the clock and save your score — it keeps running while you are away.',
+                )
+            : t(
+                'Choose how long you get, start the clock and open the paper in Drive. A bell rings when the time is up, and you enter your score here.',
+              )
       }
       icon={<ClockIcon className="h-4 w-4" />}
     >
@@ -105,14 +176,43 @@ export function PracticeDialog({
 
       {thisPaperRunning && !scoring && (
         <div className="space-y-3">
-          <div className="rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-5 text-center dark:border-brand-500/40 dark:bg-brand-500/10">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300">
-              {t('Running')}
+          <div
+            className={classNames(
+              'rounded-2xl border px-4 py-5 text-center',
+              expired
+                ? 'border-brand-300 bg-brand-50 dark:border-brand-500/50 dark:bg-brand-500/15'
+                : nearlyUp
+                  ? 'border-amber-300 bg-amber-50/70 dark:border-amber-500/40 dark:bg-amber-500/10'
+                  : 'border-brand-200 bg-brand-50/60 dark:border-brand-500/40 dark:bg-brand-500/10',
+            )}
+          >
+            <p
+              className={classNames(
+                'text-[11px] font-bold uppercase tracking-[0.14em]',
+                expired
+                  ? 'text-brand-700 dark:text-brand-300'
+                  : 'text-brand-700 dark:text-brand-300',
+              )}
+            >
+              {expired ? t('Time’s up') : t('Time left')}
             </p>
-            <p className="mt-1 font-mono text-[34px] font-bold leading-none tracking-tight text-ink-900 dark:text-white">
-              {formatClock(elapsedMs)}
+            <p
+              className={classNames(
+                'mt-1 font-mono text-[34px] font-bold leading-none tracking-tight tabular-nums',
+                expired
+                  ? 'text-brand-700 dark:text-brand-300'
+                  : nearlyUp
+                    ? 'text-amber-800 dark:text-amber-300'
+                    : 'text-ink-900 dark:text-white',
+              )}
+            >
+              {formatClock(remainingMs)}
+            </p>
+            <p className="mt-1.5 text-[11.5px] text-ink-500 dark:text-ink-400">
+              {t('of {minutes} min', { minutes: runningMinutes })}
             </p>
           </div>
+
           <div className="flex gap-2">
             <a
               href={paper ? driveViewUrl(paper.drive_file_id) : undefined}
@@ -127,15 +227,12 @@ export function PracticeDialog({
               onClick={() => setScoring(true)}
               className="h-10 flex-1 rounded-xl bg-brand-600 text-[13px] font-semibold text-white transition hover:bg-brand-700"
             >
-              {t('Finish & enter score')}
+              {expired ? t('Enter score') : t('Finish & enter score')}
             </button>
           </div>
           <button
             type="button"
-            onClick={() => {
-              onCancelTimer()
-              onSuccess(t('Timer stopped — nothing was saved.'))
-            }}
+            onClick={stopTimer}
             className="w-full text-center text-[12px] font-semibold text-ink-400 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
           >
             {t('Cancel this practice')}
@@ -175,8 +272,7 @@ export function PracticeDialog({
             </label>
           </div>
           <p className="rounded-xl bg-ink-50 px-3 py-2 text-[11.5px] text-ink-500 dark:bg-ink-800/60 dark:text-ink-400">
-            {t('Time taken:')}{' '}
-            <span className="font-semibold">{formatClock(elapsedMs)}</span>
+            {t('Time taken:')} <span className="font-semibold">{formatClock(elapsedMs)}</span>
           </p>
           {error && (
             <p className="rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
@@ -214,21 +310,88 @@ export function PracticeDialog({
               </p>
               <button
                 type="button"
-                onClick={() => {
-                  onCancelTimer()
-                  onSuccess(t('Timer stopped — nothing was saved.'))
-                }}
+                onClick={stopTimer}
                 className="rounded-lg border border-amber-300 px-2 py-1 text-[11.5px] font-semibold dark:border-amber-500/40"
               >
                 {t('Stop that timer')}
               </button>
             </div>
           ) : (
-            <p className="text-[13px] leading-relaxed text-ink-600 dark:text-ink-300">
-              {t(
-                'Start the clock, open the paper in Drive, solve it, then come back here and enter your score. The timer keeps running while you are away.',
+            <div>
+              <p className="mb-1 text-[12px] font-semibold text-ink-600 dark:text-ink-300">
+                {t('Time allowed')}
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {QUICK_MINUTES.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setMinutes(String(option))}
+                    aria-pressed={chosenMinutes === option}
+                    className={classNames(
+                      'h-9 rounded-xl border px-3 text-[12.5px] font-semibold transition',
+                      chosenMinutes === option
+                        ? 'border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500/50 dark:bg-brand-500/15 dark:text-brand-200'
+                        : 'border-ink-200 text-ink-600 hover:border-ink-300 dark:border-ink-700 dark:text-ink-300',
+                    )}
+                  >
+                    {option} {t('min')}
+                  </button>
+                ))}
+                <label className="flex h-9 items-center gap-1 rounded-xl border border-ink-200 px-2 dark:border-ink-700">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={MIN_PRACTICE_MINUTES}
+                    max={MAX_PRACTICE_MINUTES}
+                    value={minutes}
+                    onChange={(event) => setMinutes(event.target.value.slice(0, 3))}
+                    onBlur={() => setMinutes(String(chosenMinutes))}
+                    aria-label={t('Minutes')}
+                    className="w-14 bg-transparent text-[13px] font-semibold text-ink-900 outline-none dark:text-white"
+                  />
+                  <span className="text-[11.5px] text-ink-400 dark:text-ink-500">{t('min')}</span>
+                </label>
+              </div>
+              {error && (
+                <p className="mt-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
+                  {error}
+                </p>
               )}
-            </p>
+              {isAdmin && (
+                <form
+                  onSubmit={saveDefault}
+                  className="mt-2.5 rounded-xl border border-ink-200 px-2.5 py-2 dark:border-ink-700"
+                >
+                  <p className="text-[11.5px] font-semibold text-ink-700 dark:text-ink-200">
+                    {t('Default for everyone')}
+                  </p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={MIN_PRACTICE_MINUTES}
+                      max={MAX_PRACTICE_MINUTES}
+                      value={defaultDraft}
+                      onChange={(event) => setDefaultDraft(event.target.value.slice(0, 3))}
+                      aria-label={t('Default minutes')}
+                      className="h-9 w-16 rounded-lg border border-ink-200 bg-white px-2 text-[13px] font-semibold text-ink-900 outline-none focus:border-brand-400 dark:border-ink-700 dark:bg-ink-800 dark:text-white"
+                    />
+                    <span className="text-[11.5px] text-ink-400 dark:text-ink-500">{t('min')}</span>
+                    <button
+                      type="submit"
+                      disabled={savingDefault}
+                      className="ml-auto h-8 rounded-lg border border-brand-200 px-2.5 text-[11.5px] font-semibold text-brand-700 transition hover:bg-brand-50 disabled:opacity-60 dark:border-brand-500/40 dark:text-brand-300 dark:hover:bg-brand-500/10"
+                    >
+                      {savingDefault ? t('Saving…') : t('Save default')}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[10.5px] leading-snug text-ink-400 dark:text-ink-500">
+                    {t('Only the admin can change this. Every student starts here.')}
+                  </p>
+                </form>
+              )}
+            </div>
           )}
 
           <div className="flex gap-2">
@@ -236,7 +399,7 @@ export function PracticeDialog({
               type="button"
               disabled={otherPaperRunning}
               onClick={() => {
-                onStart()
+                onStart(chosenMinutes)
                 if (paper) window.open(driveViewUrl(paper.drive_file_id), '_blank', 'noopener')
               }}
               className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"

@@ -17,7 +17,8 @@ https://mppolicepyqs.vercel.app
 - **Report a problem** on every card — no account needed
 - Filtered lists are shareable: the search, folder and All/Not done/Done switch live in
   the address, and **Copy link** puts the whole view in WhatsApp
-- **Practice** on every card: start a timer, solve the paper in Drive, then enter your
+- **Practice** on every card: pick your time (120 minutes by default), solve the paper in
+  Drive against a countdown, hear a bell at zero, then enter your
   score. The card keeps your best score and how many attempts you made, and the running
   clock stays visible in the corner while you read the PDF
 - **Notes** on every card: a private note (up to 2000 characters) plus an easy / medium /
@@ -185,12 +186,31 @@ for example) are shown as the server wrote them.
 
 Both live on each card, in the small link row under the buttons.
 
-**Practice** — tap *Practice* → *Start & open paper*. The timer starts and the PDF opens in
-Drive; the clock also sits in the bottom-left corner of the site, so it keeps running while
-the student reads or scrolls. Tapping *Finish* asks for marks scored and out of how many
-(defaults to 100). The card then shows **Best 68/100 · 2×**, and the dialog lists the last
-five attempts with time taken and date, each removable. Nothing is enforced — it is a
-self-timed record, which is what makes it work without an account.
+**Practice** — tap *Practice* and the clock appears. It counts **down**, like the real
+exam: the student picks how long they get (30 / 60 / 90 / 120 minutes, or any number from
+5 to 300) and **120 minutes is the default**. *Start & open paper* starts the clock and opens
+the PDF in Drive; the countdown also sits in the bottom-left corner of the site, so it keeps
+running while the student reads or scrolls, and turns amber under five minutes and red at
+zero. When it reaches zero a **bell rings** (three double beeps, made with the Web Audio
+API — no sound file, and the phone also vibrates), the card's chip switches to *Time's up*,
+and a toast says so. The run stays open so the score can still be saved; *Enter score* asks
+for marks scored and out of how many (defaults to 100). The card then shows
+**Best 68/100 · 2×**, and the dialog lists the last five attempts with time taken and date,
+each removable. Nothing is enforced — it is a self-timed record, which is what makes it work
+without an account. A run that went past the bell is saved as the full time allowed.
+
+**Who sets the default.** The administrator only. Inside the Practice dialog, signed in as
+the admin, there is a *Default for everyone* box: type the minutes and *Save default*. It is
+stored in the `app_settings` table (`practice_default_minutes`), so every student starts
+there, and the row is writable only under the admin policy — a student who tries to change
+it through the API is refused by RLS. The last value read is also kept on the device, so the
+timer still starts on the admin's number offline.
+
+**Browsers and sound.** A page may only make noise after a tap, so the audio is primed by
+the tap that starts the run. If the student has switched to another app for two hours, the
+phone may have throttled the tab: the bell then rings the moment the library is opened
+again — the countdown itself is worked out from the clock, so it is never wrong, only the
+ringing can be late.
 
 **Notes** — tap *Notes* to pick Easy / Medium / Hard and write a note. The rating shows as a
 chip on the card; the note itself only opens in the dialog. Nobody else can see either, not
@@ -515,6 +535,7 @@ policies and the admin check). It is already applied to the live project.
 | `paper_reports` | Student-submitted problem notes (reason, details, status) |
 | `paper_notes` | `(user_id, paper_id)` — one private note + easy/medium/hard rating per paper per student |
 | `practice_attempts` | One row per timed run: `seconds`, `score`, `total`, `created_at` |
+| `app_settings` | Library-wide settings the admin sets once: `practice_default_minutes` (default `120`) |
 
 Security model:
 
@@ -527,6 +548,9 @@ Security model:
 - `paper_notes` — select, insert, update and delete are restricted to `auth.uid() = user_id`
 - `practice_attempts` — select, insert and delete are restricted to `auth.uid() = user_id`
   (attempts are never updated, so there is no update policy)
+- `app_settings` — readable by everyone (the timer needs the default before sign-in);
+  insert, update and delete only for `is_library_admin()`, so the practice time cannot be
+  changed by a student even through the API
 - Guests who never sign in keep Done marks, notes and practice attempts in `localStorage`;
   all three are merged into the account on first sign-in.
 
@@ -536,6 +560,9 @@ Security model:
 - Very large PDFs can show a Google virus-scan warning before downloading.
 - Practice scores are self-reported. They are a personal record, not an exam result.
 - A practice timer lives on one device and in one tab; clearing site data clears it.
+- The practice bell needs the tap that starts the run (a browser will not let a page ring
+  on its own). If the phone suspends the tab, the bell rings when the library is opened
+  again — the countdown itself is never wrong.
 - Offline, the app shows the saved list and the device copy of progress; PDFs still need
   Google Drive.
 - The saved list is per browser: installing on a second phone saves its own copy.
