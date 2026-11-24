@@ -34,6 +34,12 @@ https://mppolicepyqs.vercel.app
 - A small rail on every card: **drag the ⠿ grip, or tap ↑ / ↓**, to set the order everybody sees
 - A **Problem reports** inbox in the avatar menu, with a badge for open reports
 - An **Answer key link** box in the edit form: paste a key's Drive link, no card needed
+- **Bulk edit** — tick many cards at once and change their folder, tags, year or shift,
+  or delete them together
+- **Library check** — asks Google Drive whether every paper and answer key still opens,
+  and lists anything that looks like it was uploaded twice
+- Duplicate guard: pasting a Drive link that is already in the library is refused
+  before it is saved
 
 ## First-time admin login
 
@@ -271,6 +277,72 @@ by moving each card's file id into `solution_file_id` and deleting the card row.
 about those papers' green button changed — it still opens the same PDF. The
 *MP Police Constable 2025 Solutions* folder disappeared with the cards.
 
+## Bulk edit
+
+Tap **Bulk edit** under the filters (or *avatar menu → Bulk edit*). Every card grows a tick
+box; the bar at the bottom counts what you picked.
+
+1. Tick the cards — or **All N** to take everything the current filters show.
+2. **Edit fields** opens one form: folder, tags to add, tags to remove, exam year, shift.
+   Only the fields you fill in change; **Keep each shift** and a blank year leave those
+   alone. A tag that already exists is not duplicated, and spelling is tidied as usual.
+3. **Delete** asks once, then removes the whole selection for everybody. The Drive files
+   are never touched.
+
+Close the bar with the ✕ to go back to normal browsing.
+
+## Library check
+
+*Avatar menu → Library check* (or the **Link check** button under the filters). Two things
+live here:
+
+**Link health.** Tap **Check all links**. A small server function asks Google Drive about
+every paper and every attached answer key, and answers with one of four words:
+
+| Result | Meaning | What to do |
+| --- | --- | --- |
+| Works | Anyone with the link can open it | Nothing |
+| Not public | The file exists but is not shared | Share it as *Anyone with the link* |
+| Missing | Deleted, or the id is wrong | Find the file again, or delete the card |
+| Unclear | Drive did not answer in time | Check again in a moment |
+
+Every link that is not "Works" is listed with **Edit** and **Delete** buttons, so a broken
+card can be fixed from the same screen. Results are remembered in the browser (and only
+in the browser), so reopening the panel does not re-check everything; **Clear** forgets
+them and **Recheck** runs again. Cards also get a small dot on the PDF icon while a
+problem is known.
+
+**Duplicates.** Three kinds are looked for, in this order:
+
+1. the same Drive file on two cards,
+2. two cards with the same title (punctuation and capitals ignored),
+3. two cards claiming the same folder + exam year + shift — usually the same paper
+   uploaded twice under slightly different names.
+
+Each group lists the cards with their folder and upload date, with **Edit** and **Delete**
+on every row. The numbers at the top also flag papers with no exam year set.
+
+> The check runs in `api/link-health.js`, a Vercel serverless function. It calls Drive from
+> the server because a browser cannot read a cross-origin Drive response; it reads only
+> the first part of each preview page and never downloads a file. `vercel.json` gives it a
+> 30-second budget. If the function is missing (a local `npm run dev`, say) the panel
+> simply reports that the checker could not be reached.
+
+## Duplicate guard on upload
+
+The **Add PDFs** panel and the edit form both compare what you are about to save with the
+whole library:
+
+- the same Drive file as a card → **refused**, with the name of the card that has it;
+- a file that is already somebody's answer key → **refused**;
+- a file used as a paper, pasted as an answer key → **refused**;
+- only a matching title → a warning, plus an **Add them anyway** tick box in case two
+  different papers really are called the same thing.
+
+The database backs this up: `papers.drive_file_id` has a unique index, so even two tabs
+saving at the same moment cannot create the same card twice. A rejected duplicate comes
+back as "Already in the library".
+
 ## Arranging the order
 
 1. Sign in as the administrator — every card then shows a small rail on its left:
@@ -326,7 +398,8 @@ Live at <https://mppolicepyqs.vercel.app>. Every push to
 
 ## Deployment settings
 
-The site is a static Vite build. On Vercel the project needs:
+The site is a static Vite build plus one serverless function (`api/link-health.js`, for the
+link check). On Vercel the project needs:
 
 - Framework preset: **Vite**
 - Install command: `npm install`
@@ -341,7 +414,7 @@ policies and the admin check). It is already applied to the live project.
 
 | Table | Purpose |
 | --- | --- |
-| `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source, `exam_year`, `exam_shift`, `solution_file_id` (its answer key) |
+| `papers` | One row per PDF: title, `drive_file_id` (unique index), folder, tags, source, `exam_year`, `exam_shift`, `solution_file_id` (its answer key) |
 | `paper_progress` | `(user_id, paper_id)` rows — each student's Done marks |
 | `profiles` | One row per account: username + avatar URL |
 | `paper_reports` | Student-submitted problem notes (reason, details, status) |

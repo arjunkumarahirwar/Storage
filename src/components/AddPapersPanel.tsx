@@ -5,6 +5,7 @@ import {
   parseTagInput,
   splitPaperLine,
 } from '../lib/drive'
+import { checkAgainstLibrary } from '../lib/duplicates'
 import type { NewPaper, Paper, SourceType } from '../lib/types'
 import { Modal } from './Modal'
 import { AlertIcon, FileIcon, LinkIcon, LoaderIcon, PlusIcon, XIcon } from './Icons'
@@ -19,6 +20,8 @@ interface AddPapersPanelProps {
   onClose: () => void
   categories: string[]
   editing: Paper | null
+  /** The whole library, so a paste can be checked for duplicates before saving. */
+  existing: Paper[]
   onCreate: (rows: NewPaper[]) => Promise<AddResult>
   onUpdate: (id: string, patch: Partial<NewPaper>) => Promise<void>
   onToast: (message: string, tone: 'success' | 'error' | 'info') => void
@@ -45,6 +48,7 @@ export function AddPapersPanel({
   onClose,
   categories,
   editing,
+  existing,
   onCreate,
   onUpdate,
   onToast,
@@ -61,6 +65,8 @@ export function AddPapersPanel({
   const [sourceUrl, setSourceUrl] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** The admin has seen the "same title already exists" note and means it. */
+  const [acknowledgeTitles, setAcknowledgeTitles] = useState(false)
 
   // Edit mode fields
   const [editTitle, setEditTitle] = useState('')
@@ -89,6 +95,7 @@ export function AddPapersPanel({
     } else {
       setRaw('')
       setTitleOverrides({})
+      setAcknowledgeTitles(false)
       setTags('')
       setYear('')
       setShift('')
@@ -123,18 +130,24 @@ export function AddPapersPanel({
   const effectiveRows = rows.map((row) => {
     const answerLink = (keyOverrides[row.key] ?? row.answerLink).trim()
     const parsedAnswer = answerLink ? parseDriveLink(answerLink) : { fileId: null }
+    const title = (titleOverrides[row.key] ?? row.title).trim()
+    const answerFileId = parsedAnswer.fileId
     return {
       ...row,
-      title: (titleOverrides[row.key] ?? row.title).trim(),
+      title,
       answerLink,
-      answerFileId: parsedAnswer.fileId,
+      answerFileId,
       answerError:
         answerLink && !parsedAnswer.fileId
           ? ('error' in parsedAnswer ? parsedAnswer.error : undefined) ??
             'Could not find a file id in this link.'
           : undefined,
+      // Same Drive file as a card already in the library? Same title?
+      library: checkAgainstLibrary({ title, fileId: row.fileId, answerFileId }, existing),
     }
   })
+
+  const softDuplicates = effectiveRows.filter((row) => row.library.warning)
 
   const idCounts = effectiveRows.reduce<Record<string, number>>((acc, row) => {
     for (const id of [row.fileId, row.answerFileId]) {
@@ -154,6 +167,10 @@ export function AddPapersPanel({
       return `The answer key link for “${badKey.title || 'this paper'}” is not a Google Drive file link.`
     if (effectiveRows.some((row) => row.answerFileId && idCounts[row.answerFileId] > 1))
       return 'An answer key is the same file as a question paper. Attach a different PDF.'
+    const blocked = effectiveRows.find((row) => row.library.blocked)
+    if (blocked) return `${blocked.title || 'This link'}: ${blocked.library.blocked}`
+    if (softDuplicates.length && !acknowledgeTitles)
+      return 'Some titles match a paper already in the library. Tick “add anyway” below, or change the titles.'
     if (!category.trim()) return 'Pick a folder name.'
     if (sourceType === 'official' && !/^https:\/\/\S+$/i.test(sourceUrl.trim()))
       return 'Official sources need an https:// link.'
@@ -234,6 +251,15 @@ export function AddPapersPanel({
     }
   }
 
+  const parsedEditKey = editKeyLink.trim() ? parseDriveLink(editKeyLink.trim()) : { fileId: null }
+  const editLibraryCheck = editing
+    ? checkAgainstLibrary(
+        { title: editTitle, fileId: null, answerFileId: parsedEditKey.fileId },
+        existing,
+        editing.id,
+      )
+    : {}
+
   const submitEdit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!editing) return
@@ -250,6 +276,10 @@ export function AddPapersPanel({
     const parsedKey = keyLink ? parseDriveLink(keyLink) : { fileId: null }
     if (keyLink && !parsedKey.fileId) {
       setError('That answer key link is not a Google Drive file link.')
+      return
+    }
+    if (editLibraryCheck.blocked) {
+      setError(editLibraryCheck.blocked)
       return
     }
     setBusy(true)
@@ -301,6 +331,11 @@ export function AddPapersPanel({
               className={field}
               maxLength={180}
             />
+            {editLibraryCheck.warning && (
+              <p className="mt-1 flex items-start gap-1.5 text-[11.5px] font-medium text-amber-700 dark:text-amber-400">
+                <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {editLibraryCheck.warning}
+              </p>
+            )}
           </div>
           <div>
             <label className={labelClass} htmlFor="edit-category">
@@ -351,6 +386,11 @@ export function AddPapersPanel({
               Paste the answer key PDF's Drive link. It needs no folder, title or tags —
               the paper's green “Answer key” button opens it.
             </p>
+            {editLibraryCheck.blocked && (
+              <p className="mt-1 flex items-start gap-1.5 text-[11.5px] font-semibold text-brand-700 dark:text-brand-300">
+                <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {editLibraryCheck.blocked}
+              </p>
+            )}
           </div>
 
           <SourceFields
@@ -454,11 +494,24 @@ export function AddPapersPanel({
                     <p
                       className={[
                         'mt-1 truncate px-1 font-mono text-[10.5px]',
-                        invalid ? 'text-brand-600 dark:text-brand-300' : 'text-ink-400',
+                        invalid || row.library.blocked
+                          ? 'text-brand-600 dark:text-brand-300'
+                          : 'text-ink-400',
                       ].join(' ')}
                     >
-                      {row.error ?? (duplicate ? 'Duplicate file in this batch' : row.fileId)}
+                      {row.error ??
+                        (duplicate ? 'Duplicate file in this batch' : row.fileId)}
                     </p>
+                    {row.library.blocked && (
+                      <p className="mt-0.5 flex items-start gap-1 px-1 text-[10.5px] font-semibold text-brand-700 dark:text-brand-300">
+                        <AlertIcon className="mt-px h-3 w-3 shrink-0" /> {row.library.blocked}
+                      </p>
+                    )}
+                    {!row.library.blocked && row.library.warning && (
+                      <p className="mt-0.5 flex items-start gap-1 px-1 text-[10.5px] font-medium text-amber-700 dark:text-amber-400">
+                        <AlertIcon className="mt-px h-3 w-3 shrink-0" /> {row.library.warning}
+                      </p>
+                    )}
 
                                         <div className="mt-1">
                       <div className="flex items-center gap-1">
@@ -562,6 +615,23 @@ export function AddPapersPanel({
             onTypeChange={setSourceType}
             onUrlChange={setSourceUrl}
           />
+
+          {softDuplicates.length > 0 && !effectiveRows.some((row) => row.library.blocked) && (
+            <label className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-[12px] font-medium text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+              <input
+                type="checkbox"
+                checked={acknowledgeTitles}
+                onChange={(event) => setAcknowledgeTitles(event.target.checked)}
+                className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-amber-300 accent-amber-600"
+              />
+              <span>
+                {softDuplicates.length === 1
+                  ? 'One title matches a paper already in the library.'
+                  : `${softDuplicates.length} titles match papers already in the library.`}{' '}
+                Add them anyway.
+              </span>
+            </label>
+          )}
 
           <FormError message={error} />
           <Actions busy={busy} submitLabel="Add to library" onCancel={onClose} />

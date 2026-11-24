@@ -64,6 +64,25 @@ export const DIFFICULTIES: { value: Difficulty; label: string; hint: string }[] 
   { value: 'hard', label: 'Hard', hint: 'Revisit this one' },
 ]
 
+/** What the link checker says about a Drive file. */
+export type LinkStatus = 'ok' | 'restricted' | 'missing' | 'unknown'
+
+export interface LinkHealthResult {
+  status: LinkStatus
+  /** ISO timestamp of the check. */
+  at: string
+}
+
+/** The changes the bulk editor can make to a set of papers. */
+export interface BulkPatch {
+  category?: string
+  addTags?: string[]
+  removeTags?: string[]
+  /** `undefined` leaves the year alone, `null` clears it. */
+  examYear?: number | null
+  examShift?: number | null
+}
+
 /** One timed practice run, self-reported after reading the PDF. */
 export interface PracticeAttempt {
   id: string

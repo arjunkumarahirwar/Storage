@@ -221,3 +221,17 @@ export const NoteIcon = (props: IconProps) => (
     <path d="M8.5 12.5h7M8.5 16h4.5" />
   </svg>
 )
+
+export const LayersIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="M12 3 3.5 7.5 12 12l8.5-4.5L12 3Z" />
+    <path d="m3.5 12.5 8.5 4.5 8.5-4.5" />
+    <path d="m3.5 17 8.5 4.5 8.5-4.5" />
+  </svg>
+)
+
+export const PulseIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="M3 12h4l2.5-6 4 12L16 12h5" />
+  </svg>
+)

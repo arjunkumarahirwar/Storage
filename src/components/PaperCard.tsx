@@ -1,7 +1,7 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { driveDownloadUrl, driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
-import type { NoteEntry, Paper, PracticeAttempt } from '../lib/types'
+import type { LinkStatus, NoteEntry, Paper, PracticeAttempt } from '../lib/types'
 import {
   AlertIcon,
   CheckIcon,
@@ -46,6 +46,12 @@ interface PaperCardProps {
   note?: NoteEntry
   /** This student's timed practice runs, newest first. */
   attempts?: PracticeAttempt[]
+  /** Bulk edit is on: show a tick box instead of the drag rail. */
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
+  /** The administrator's last link check for this paper's Drive file. */
+  health?: LinkStatus | null
   practiceRunning?: boolean
   onToggleDone: () => void
   onShare: () => void
@@ -76,6 +82,10 @@ export function PaperCard({
   canMoveDown = false,
   note,
   attempts,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+  health,
   practiceRunning = false,
   onToggleDone,
   onShare,
@@ -98,12 +108,31 @@ export function PaperCard({
         done
           ? 'border-emerald-200/80 bg-emerald-50/40 dark:border-emerald-500/25 dark:bg-emerald-500/[0.06]'
           : 'border-ink-200/90 bg-white hover:border-ink-300 dark:border-ink-800 dark:bg-ink-900 dark:hover:border-ink-700',
+        selected &&
+          'border-brand-400 ring-2 ring-brand-500/25 dark:border-brand-500/60 dark:ring-brand-500/20',
         isDragging &&
           'border-brand-400 shadow-2xl ring-2 ring-brand-500/30 dark:border-brand-500/60',
       )}
     >
       <div className="flex items-start gap-3">
-        {isAdmin && dragHandleProps && (
+        {selectable && (
+          <button
+            type="button"
+            onClick={onToggleSelect}
+            role="checkbox"
+            aria-checked={selected}
+            aria-label={`${selected ? 'Unselect' : 'Select'} ${paper.title}`}
+            className={classNames(
+              'mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg border-2 transition',
+              selected
+                ? 'border-brand-600 bg-brand-600 text-white'
+                : 'border-ink-300 bg-white text-transparent hover:border-brand-400 dark:border-ink-600 dark:bg-ink-800',
+            )}
+          >
+            <CheckIcon className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {!selectable && isAdmin && dragHandleProps && (
           <div className="-ml-1 flex w-6 shrink-0 flex-col items-center gap-1">
             <button
               type="button"
@@ -147,6 +176,25 @@ export function PaperCard({
           <span className="absolute bottom-1 text-[8px] font-extrabold uppercase tracking-wider">
             PDF
           </span>
+          {health && health !== 'ok' && (
+            <span
+              title={
+                health === 'missing'
+                  ? 'Link check: this Drive file is gone'
+                  : health === 'restricted'
+                    ? 'Link check: this file is not shared publicly'
+                    : 'Link check: Drive could not be reached'
+              }
+              className={classNames(
+                'absolute right-1 top-1 h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-ink-900',
+                health === 'missing'
+                  ? 'bg-brand-600'
+                  : health === 'restricted'
+                    ? 'bg-amber-500'
+                    : 'bg-ink-400',
+              )}
+            />
+          )}
         </a>
 
         <div className="min-w-0 flex-1">

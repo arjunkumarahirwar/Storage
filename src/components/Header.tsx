@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Avatar } from './Avatar'
 import {
   AlertIcon,
+  LayersIcon,
   LogOutIcon,
   MoonIcon,
+  PulseIcon,
   SearchIcon,
   ShieldIcon,
   SunIcon,
@@ -26,6 +28,9 @@ interface HeaderProps {
   /** How many student reports are still open (administrator only). */
   reportCount?: number
   onOpenReports?: () => void
+  /** Administrator tools: pick many cards at once, and check the Drive links. */
+  onOpenBulk?: () => void
+  onOpenCheck?: () => void
 }
 
 export function Header({
@@ -42,6 +47,8 @@ export function Header({
   onEditProfile,
   reportCount = 0,
   onOpenReports,
+  onOpenBulk,
+  onOpenCheck,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -163,6 +170,30 @@ export function Header({
                             {reportCount}
                           </span>
                         )}
+                      </button>
+                    )}
+                    {isAdmin && onOpenBulk && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          onOpenBulk()
+                        }}
+                        className="flex w-full items-center gap-2 border-b border-ink-100 px-4 py-3 text-left text-sm font-medium text-ink-700 transition hover:bg-ink-50 dark:border-ink-800 dark:text-ink-200 dark:hover:bg-ink-800"
+                      >
+                        <LayersIcon className="h-4 w-4" /> Bulk edit
+                      </button>
+                    )}
+                    {isAdmin && onOpenCheck && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false)
+                          onOpenCheck()
+                        }}
+                        className="flex w-full items-center gap-2 border-b border-ink-100 px-4 py-3 text-left text-sm font-medium text-ink-700 transition hover:bg-ink-50 dark:border-ink-800 dark:text-ink-200 dark:hover:bg-ink-800"
+                      >
+                        <PulseIcon className="h-4 w-4" /> Library check
                       </button>
                     )}
                     <button

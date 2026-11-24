@@ -92,6 +92,9 @@ create index if not exists papers_sort_order_idx on public.papers (sort_order);
 create index if not exists papers_solution_idx on public.papers (solution_paper_id);
 create index if not exists papers_exam_year_idx on public.papers (exam_year);
 create index if not exists papers_exam_shift_idx on public.papers (exam_shift);
+-- One Drive file can only be one card. This is the database half of the
+-- duplicate check in the Add panel, so two tabs cannot add the same PDF twice.
+create unique index if not exists papers_drive_file_id_key on public.papers (drive_file_id);
 
 -- Read the year and shift out of titles like "MP Police Constable 07 Nov 2025
 -- Shift 2". 19xx/20xx only, so "1 TO 1000" in a maths title is not a year.

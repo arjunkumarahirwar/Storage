@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { parseExamInfo, normaliseTags } from '../lib/exam'
 import { supabase } from '../lib/supabase'
-import type { NewPaper, Paper } from '../lib/types'
+import type { BulkPatch, NewPaper, Paper } from '../lib/types'
 
 interface AddResult {
   inserted: number
@@ -16,6 +16,9 @@ export interface PapersState {
   addPapers: (rows: NewPaper[]) => Promise<AddResult>
   updatePaper: (id: string, patch: Partial<NewPaper>) => Promise<void>
   deletePaper: (id: string) => Promise<void>
+  /** Applies the same change to several papers at once (bulk edit). */
+  bulkUpdate: (ids: string[], patch: BulkPatch) => Promise<number>
+  deleteMany: (ids: string[]) => Promise<number>
   /** Moves the cards around locally while a card is held, without touching the database. */
   previewOrder: (orderedVisibleIds: string[]) => void
   /** Same as previewOrder, then saves the new arrangement for everybody. */
@@ -216,6 +219,78 @@ export function usePapers(): PapersState {
     [applyPapers],
   )
 
+  /**
+   * Bulk edit. Folder, year and shift are one update for the whole selection;
+   * tags are per row because each card keeps its own list. Every changed row
+   * comes back from the database, so the cards redraw with what was saved.
+   */
+  const bulkUpdate = useCallback(
+    async (ids: string[], patch: BulkPatch) => {
+      const selected = papersRef.current.filter((paper) => ids.includes(paper.id))
+      if (!selected.length) return 0
+
+      const addTags = normaliseTags(patch.addTags ?? [])
+      const removeTags = new Set(normaliseTags(patch.removeTags ?? []).map((tag) => tag.toLowerCase()))
+      const touchesTags = addTags.length > 0 || removeTags.size > 0
+
+      const shared: Partial<NewPaper> = {}
+      if (patch.category !== undefined) shared.category = patch.category
+      if (patch.examYear !== undefined) shared.exam_year = patch.examYear
+      if (patch.examShift !== undefined) shared.exam_shift = patch.examShift
+
+      const fresh: Paper[] = []
+
+      if (!touchesTags && Object.keys(shared).length) {
+        const { data, error: bulkError } = await supabase
+          .from('papers')
+          .update(shared)
+          .in('id', ids)
+          .select('*')
+        if (bulkError) throw bulkError
+        fresh.push(...((data ?? []) as Paper[]))
+      } else if (touchesTags) {
+        const results = await Promise.all(
+          selected.map((paper) => {
+            const kept = paper.tags.filter((tag) => !removeTags.has(tag.toLowerCase()))
+            const merged = normaliseTags([...kept, ...addTags])
+            return supabase
+              .from('papers')
+              .update({ ...shared, tags: merged })
+              .eq('id', paper.id)
+              .select('*')
+              .single()
+          }),
+        )
+        const failure = results.find((result) => result.error)
+        if (failure?.error) throw failure.error
+        for (const result of results) {
+          if (result.data) fresh.push(result.data as Paper)
+        }
+      }
+
+      if (fresh.length) {
+        const byId = new Map(fresh.map((paper) => [paper.id, paper]))
+        applyPapers(
+          papersRef.current.map((paper) => byId.get(paper.id) ?? paper),
+        )
+      }
+      return fresh.length
+    },
+    [applyPapers],
+  )
+
+  const deleteMany = useCallback(
+    async (ids: string[]) => {
+      if (!ids.length) return 0
+      const { error: deleteError } = await supabase.from('papers').delete().in('id', ids)
+      if (deleteError) throw deleteError
+      const gone = new Set(ids)
+      applyPapers(papersRef.current.filter((paper) => !gone.has(paper.id)))
+      return ids.length
+    },
+    [applyPapers],
+  )
+
   const previewOrder = useCallback(
     (orderedVisibleIds: string[]) => {
       applyPapers(withOrder(papersRef.current, orderedVisibleIds))
@@ -265,6 +340,8 @@ export function usePapers(): PapersState {
     addPapers,
     updatePaper,
     deletePaper,
+    bulkUpdate,
+    deleteMany,
     previewOrder,
     commitOrder,
   }

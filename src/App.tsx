@@ -2,6 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { AddPapersPanel } from './components/AddPapersPanel'
 import { AuthDialog } from './components/AuthDialog'
+import { BulkBar } from './components/BulkBar'
+import { BulkEditDialog } from './components/BulkEditDialog'
+import { LibraryCheckDialog } from './components/LibraryCheckDialog'
 import { CategoryChips } from './components/CategoryChips'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { EmptyState, PaperSkeleton } from './components/EmptyState'
@@ -15,7 +18,9 @@ import {
   CopyIcon,
   DeviceIcon,
   GripIcon,
+  LayersIcon,
   PlusIcon,
+  PulseIcon,
   RefreshIcon,
 } from './components/Icons'
 import { NotesDialog } from './components/NotesDialog'
@@ -28,6 +33,7 @@ import { ReportsDialog } from './components/ReportsDialog'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
+import { healthTargets, useLinkHealth } from './hooks/useLinkHealth'
 import { usePapers } from './hooks/usePapers'
 import { useProfile } from './hooks/useProfile'
 import { useNotes } from './hooks/useNotes'
@@ -38,7 +44,7 @@ import { useTheme } from './hooks/useTheme'
 import { useToasts } from './hooks/useToasts'
 import { driveViewUrl } from './lib/drive'
 import { formatClock } from './lib/format'
-import type { NewReport, Paper, ProgressFilter } from './lib/types'
+import type { BulkPatch, NewReport, Paper, ProgressFilter } from './lib/types'
 
 const listCards = () =>
   Array.from(document.querySelectorAll<HTMLElement>('[data-paper-id]'))
@@ -120,6 +126,8 @@ export default function App() {
     addPapers,
     updatePaper,
     deletePaper,
+    bulkUpdate,
+    deleteMany,
     commitOrder,
   } = usePapers()
   const progress = useProgress(auth.session?.user.id ?? null)
@@ -127,6 +135,7 @@ export default function App() {
   const reports = useReports(auth.isAdmin)
   const notes = useNotes(auth.session?.user.id ?? null)
   const practice = usePractice(auth.session?.user.id ?? null)
+  const health = useLinkHealth()
 
   const initialFilters = useMemo(readFiltersFromUrl, [])
   const [query, setQuery] = useState(initialFilters.query)
@@ -146,6 +155,12 @@ export default function App() {
   const [recoveryOpen, setRecoveryOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  /** Bulk edit: pick cards, then change or delete them together. */
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [checkOpen, setCheckOpen] = useState(false)
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
 
   // Everything about the card currently held: which pointer owns the drag,
   // the live order, and the order to fall back to if the drag is cancelled.
@@ -719,6 +734,78 @@ export default function App() {
     }
   }, [deleteTarget, deletePaper, push])
 
+  // A selected card can disappear (deleted from the check panel, or another
+  // tab); drop those ids so the count on the bar always matches real cards.
+  useEffect(() => {
+    if (!selected.size) return
+    const live = new Set(papers.map((paper) => paper.id))
+    setSelected((current) => {
+      const next = new Set(Array.from(current).filter((id) => live.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [papers, selected.size])
+
+  // ---- bulk edit ----------------------------------------------------------
+  const exitSelection = useCallback(() => {
+    setSelecting(false)
+    setSelected(new Set())
+    setBulkOpen(false)
+  }, [])
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const selectAllVisible = useCallback(() => {
+    setSelected(new Set(visibleIds))
+  }, [visibleIds])
+
+  const applyBulk = useCallback(
+    async (patch: BulkPatch) => {
+      const ids = Array.from(selected)
+      if (!ids.length) return
+      await bulkUpdate(ids, patch)
+      setSelected(new Set())
+    },
+    [bulkUpdate, selected],
+  )
+
+  const confirmBulkDelete = useCallback(async () => {
+    const ids = Array.from(selected)
+    if (!ids.length) {
+      setBulkDeleteOpen(false)
+      return
+    }
+    try {
+      const count = await deleteMany(ids)
+      push(
+        `${count} ${count === 1 ? 'paper' : 'papers'} removed from the library.`,
+        'success',
+      )
+      setSelected(new Set())
+    } catch (caught) {
+      push(
+        caught instanceof Error ? caught.message : 'Could not delete those papers.',
+        'error',
+      )
+    } finally {
+      setBulkDeleteOpen(false)
+    }
+  }, [deleteMany, push, selected])
+
+  const openCheck = useCallback(() => {
+    setCheckOpen(true)
+    // First visit, or an empty cache: check the whole library straight away.
+    if (papers.length && !health.results.size) {
+      void health.check(healthTargets(papers))
+    }
+  }, [health, papers])
+
   return (
     <div className="min-h-full bg-ink-50 text-ink-900 dark:bg-ink-950 dark:text-ink-100">
       <Header
@@ -742,6 +829,11 @@ export default function App() {
           setProfileOpen(false)
           push('Signed out. Your marks stay saved on this device.', 'info')
         }}
+        onOpenBulk={() => {
+          setSelected(new Set())
+          setSelecting(true)
+        }}
+        onOpenCheck={openCheck}
       />
 
       <main className="mx-auto w-full max-w-3xl px-4 pb-24 sm:px-6">
@@ -814,12 +906,45 @@ export default function App() {
               </button>
             )}
           </div>
-          {auth.isAdmin && papers.length > 1 && !loading && (
+          {auth.isAdmin && papers.length > 1 && !loading && !selecting && (
             <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-400 dark:text-ink-500">
               <GripIcon className="h-3.5 w-3.5 shrink-0" />
               Reorder: hold the ⠿ grip and drag a card, or tap ↑ ↓ on it. The
               order you set is what every student sees.
             </p>
+          )}
+          {auth.isAdmin && papers.length > 0 && !loading && !selecting && (
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(new Set())
+                  setSelecting(true)
+                }}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2.5 text-[11.5px] font-semibold text-ink-600 transition hover:border-ink-300 hover:text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300 dark:hover:text-white"
+              >
+                <LayersIcon className="h-3.5 w-3.5" /> Bulk edit
+              </button>
+              <button
+                type="button"
+                onClick={openCheck}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2.5 text-[11.5px] font-semibold text-ink-600 transition hover:border-ink-300 hover:text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300 dark:hover:text-white"
+              >
+                <PulseIcon className="h-3.5 w-3.5" /> Link check
+                {health.results.size > 0 && (
+                  <span
+                    className={[
+                      'h-1.5 w-1.5 rounded-full',
+                      Array.from(health.results.values()).some(
+                        (result) => result.status === 'missing' || result.status === 'restricted',
+                      )
+                        ? 'bg-amber-500'
+                        : 'bg-emerald-500',
+                    ].join(' ')}
+                  />
+                )}
+              </button>
+            </div>
           )}
           {progress.mode === 'device' && papers.length > 0 && (
             <button
@@ -850,8 +975,12 @@ export default function App() {
                 onMove={(delta) => nudgePaper(paper, delta)}
                 canMoveUp={visibleIds[0] !== paper.id}
                 canMoveDown={visibleIds[visibleIds.length - 1] !== paper.id}
+                selectable={selecting}
+                selected={selected.has(paper.id)}
+                onToggleSelect={() => toggleSelect(paper.id)}
+                health={health.statusOf(paper.drive_file_id)}
                 dragHandleProps={
-                  auth.isAdmin
+                  auth.isAdmin && !selecting
                     ? {
                         onPointerDown: startDrag(paper),
                         onPointerMove: moveDrag,
@@ -904,7 +1033,7 @@ export default function App() {
         <Footer paperCount={papers.length} />
       </main>
 
-      {auth.isAdmin && (
+      {auth.isAdmin && !selecting && (
         <button
           type="button"
           onClick={openAdd}
@@ -914,6 +1043,52 @@ export default function App() {
           <PlusIcon className="h-6 w-6" />
         </button>
       )}
+
+      {auth.isAdmin && selecting && (
+        <BulkBar
+          count={selected.size}
+          total={visible.length}
+          onSelectAll={selectAllVisible}
+          onClear={() => setSelected(new Set())}
+          onEdit={() => setBulkOpen(true)}
+          onDelete={() => setBulkDeleteOpen(true)}
+          onExit={exitSelection}
+        />
+      )}
+
+      <BulkEditDialog
+        open={bulkOpen}
+        count={selected.size}
+        categories={categories.map((entry) => entry.name)}
+        onClose={() => setBulkOpen(false)}
+        onApply={applyBulk}
+        onSuccess={push}
+      />
+
+      <LibraryCheckDialog
+        open={checkOpen}
+        papers={papers}
+        health={health}
+        onClose={() => setCheckOpen(false)}
+        onCheck={() => void health.check(healthTargets(papers))}
+        onForget={health.forget}
+        onEdit={(paper) => {
+          setCheckOpen(false)
+          openEdit(paper)
+        }}
+        onDelete={(paper) => {
+          setCheckOpen(false)
+          setDeleteTarget(paper)
+        }}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        title={`Delete ${selected.size} ${selected.size === 1 ? 'paper' : 'papers'}?`}
+        message={`They will be removed from the library for everyone. Your Drive files are not touched.`}
+        onCancel={() => setBulkDeleteOpen(false)}
+        onConfirm={confirmBulkDelete}
+      />
 
      <AuthDialog
         open={authOpen}
@@ -958,6 +1133,7 @@ export default function App() {
         }}
         categories={categories.map((entry) => entry.name)}
         editing={editing}
+        existing={papers}
         onCreate={addPapers}
         onUpdate={updatePaper}
         onToast={push}
@@ -995,7 +1171,12 @@ export default function App() {
       />
 
       {practice.running && (
-        <div className="fixed bottom-5 left-4 z-40 flex items-center gap-1.5 rounded-full border border-brand-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur dark:border-brand-500/40 dark:bg-ink-900/95">
+        <div
+          className={[
+            'fixed left-4 z-40 flex items-center gap-1.5 rounded-full border border-brand-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur dark:border-brand-500/40 dark:bg-ink-900/95',
+            selecting ? 'bottom-32' : 'bottom-5',
+          ].join(' ')}
+        >
           <ClockIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-300" />
           <span className="font-mono text-[12.5px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
             {formatClock(practice.elapsedMs)}
