@@ -30,7 +30,7 @@ interface PaperCardProps {
   done: boolean
   isAdmin: boolean
   /** The answer key attached to this paper, if any. */
-  solution?: Paper | null
+  answerKey?: { fileId: string; title: string } | null
   /** When this card IS an answer key: the paper it belongs to. */
   originalPaper?: Paper | null
   isDragging?: boolean
@@ -58,7 +58,7 @@ export function PaperCard({
   paper,
   done,
   isAdmin,
-  solution,
+  answerKey,
   originalPaper,
   isDragging = false,
   dragHandleProps,
@@ -177,12 +177,12 @@ export function PaperCard({
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {solution && (
+            {answerKey && (
               <a
-                href={driveViewUrl(solution.drive_file_id)}
+                href={driveViewUrl(answerKey.fileId)}
                 target="_blank"
                 rel="noreferrer noopener"
-                title={`Answer key: ${solution.title}`}
+                title={`Answer key: ${answerKey.title}`}
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
               >
                 <CheckIcon className="h-3 w-3" /> Answer key

@@ -57,7 +57,9 @@ Two things to know:
 
 ## Answer keys
 
-Every paper can point at its own solution PDF, so a student never has to hunt for the key.
+Every paper can point at its own answer key, so a student never has to hunt for it. The
+key is either a file attached to the paper (the normal case — no card of its own) or a
+separate solution card, which is how the first 15 pairs were built.
 
 1. Open the solution card → **Edit** → **Answer key (optional)** → choose the paper it
    belongs to. (Or edit the *paper* and pick its solution — the two cards are linked
@@ -215,33 +217,37 @@ Folder links are rejected — only individual files open in the Drive viewer.
 
 ### Attaching the answer key while you upload
 
-You no longer have to upload the paper and the solution separately and then link them.
-Two ways, both in the **Add PDFs** panel:
+Upload the question paper and its answer key in one go. Only the **paper** needs a
+title, folder, tags, year and shift — the answer key is just a Drive file stuck to it,
+so it needs none of those.
 
-**Paste it as a third part** — one line can carry both links:
+Two ways, in the **Add PDFs** panel:
 
-```
-MP Police Constable 12 Nov 2025 Shift 1 | https://drive.google.com/file/d/PAPER/view | https://drive.google.com/file/d/KEY/view
-```
+- **The field under each row** — every pasted link gets an *Answer key Drive link
+  (optional)* box. Paste the key there and the row turns green.
+- **The third pipe part** — one line can carry both links:
 
-**Or tap “Attach answer key”** under any row in the preview list and paste the key link
-there. It turns green and tells you exactly what will happen.
+  ```
+  MP Police Constable 12 Nov 2025 Shift 1 | https://drive.google.com/file/d/PAPER/view | https://drive.google.com/file/d/KEY/view
+  ```
 
-What happens on **Add to library**:
+What gets saved:
 
-- The paper is created as usual.
-- Its answer key becomes its own card — titled `<paper title> Solution`, in the same
-  folder, same year and shift, no tags — and the two are linked both ways, so the paper
-  shows the green **Answer key** pill and the key shows **Question paper**.
-- If that key PDF is **already in the library** (you uploaded it earlier), nothing is
-  duplicated: the new paper simply links to the existing card.
-- The toast counts both: *“1 paper and 1 answer key added to the library.”*
-- Move the generated card to your “Solutions” folder later with **Edit** if you keep
-  keys separate; the link follows the card, not the folder.
+- **One row per question paper.** The key's file id is stored in
+  `papers.solution_file_id` on that same row — no second card, no folder chip, no title
+  to invent, no tags. It never shows up in the list as its own paper.
+- The paper's card shows the green **Answer key** button, which opens the key PDF in the
+  Drive viewer. Search for `answer key` finds every paper that has one.
+- An answer key can be changed or added later in **Edit paper → Answer key link**.
+- Bad links are caught before anything is saved: a folder link, a Google Docs link, or a
+  key that is the same file as the question paper blocks the upload with a message under
+  that row.
+- The toast counts both: *“1 paper with an answer key added to the library.”*
 
-Bad key links are caught before anything is saved: a folder link, a Google Docs link, or
-a key that is the same file as the question paper all block the upload with a message
-under that row.
+The 15 older pairs that have their own **solution card** keep working exactly as before:
+those papers' green button opens the card's PDF. You can still point a paper at an
+existing card from *Edit paper → …or link a solution card already in the library*; the
+two options are mutually exclusive.
 
 ## Arranging the order
 

@@ -169,10 +169,21 @@ export default function App() {
     [papers],
   )
 
-  // paper id -> its answer key card
-  const solutionFor = useCallback(
-    (paper: Paper) =>
-      paper.solution_paper_id ? (papersById.get(paper.solution_paper_id) ?? null) : null,
+  /**
+   * The answer key a card's green pill opens. It is either a file attached
+   * straight to the paper (no card of its own) or the PDF of a separate
+   * solution card, which is how the first 15 pairs were made.
+   */
+  const answerKeyFor = useCallback(
+    (paper: Paper): { fileId: string; title: string } | null => {
+      if (paper.solution_file_id) {
+        return { fileId: paper.solution_file_id, title: `${paper.title} — answer key` }
+      }
+      const card = paper.solution_paper_id
+        ? papersById.get(paper.solution_paper_id)
+        : null
+      return card ? { fileId: card.drive_file_id, title: card.title } : null
+    },
     [papersById],
   )
 
@@ -199,7 +210,7 @@ export default function App() {
     () =>
       papers.filter((paper) => {
         const extra = [
-          paper.solution_paper_id ? 'answer key solution' : '',
+          paper.solution_file_id || paper.solution_paper_id ? 'answer key solution' : '',
           originalFor.has(paper.id) ? 'question paper original' : '',
         ].join(' ')
         return (
@@ -811,7 +822,7 @@ export default function App() {
                 paper={paper}
                 done={progress.done.has(paper.id)}
                 isAdmin={auth.isAdmin}
-                solution={solutionFor(paper)}
+                answerKey={answerKeyFor(paper)}
                 originalPaper={originalFor.get(paper.id) ?? null}
                 isDragging={draggingId === paper.id}
                 onMove={(delta) => nudgePaper(paper, delta)}

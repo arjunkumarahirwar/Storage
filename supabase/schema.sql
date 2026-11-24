@@ -24,6 +24,8 @@ create table if not exists public.papers (
   sort_order    integer not null default 0,
   -- The answer key attached to this paper (another row in this table).
   solution_paper_id uuid references public.papers (id) on delete set null,
+  -- ...or just the answer key's Drive file id, when it has no card of its own.
+  solution_file_id  text,
   -- Which exam this belongs to: 2025 / shift 2. Null for maths material.
   exam_year     integer,
   exam_shift    integer,
@@ -37,12 +39,14 @@ alter table public.papers
   add column if not exists solution_paper_id uuid
     references public.papers (id) on delete set null,
   add column if not exists exam_year integer,
-  add column if not exists exam_shift integer;
+  add column if not exists exam_shift integer,
+  add column if not exists solution_file_id text;
 
 alter table public.papers
   drop constraint if exists papers_title_check,
   drop constraint if exists papers_drive_file_id_check,
   drop constraint if exists papers_solution_self_check,
+  drop constraint if exists papers_solution_file_id_check,
   drop constraint if exists papers_exam_year_check,
   drop constraint if exists papers_exam_shift_check,
   drop constraint if exists papers_category_check,
@@ -75,7 +79,9 @@ alter table public.papers
   add constraint papers_exam_year_check
     check (exam_year is null or exam_year between 1990 and 2100),
   add constraint papers_exam_shift_check
-    check (exam_shift is null or exam_shift between 1 and 4);
+    check (exam_shift is null or exam_shift between 1 and 4),
+  add constraint papers_solution_file_id_check
+    check (solution_file_id is null or solution_file_id ~ '^[A-Za-z0-9_-]{10,200}$');
 
 create index if not exists papers_category_idx on public.papers (category);
 create index if not exists papers_created_at_idx on public.papers (created_at desc);
