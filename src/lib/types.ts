@@ -10,6 +10,10 @@ export interface Paper {
   source_url: string | null
   /** The answer key attached to this paper (null when there is none). */
   solution_paper_id: string | null
+  /** Exam year, e.g. 2025. Null for material that belongs to no exam. */
+  exam_year: number | null
+  /** Shift number (1, 2, …) when the exam ran in shifts. */
+  exam_shift: number | null
   /** Position in the library, set by dragging cards. 0 means "just added, put me on top". */
   sort_order: number
   created_at: string
@@ -25,6 +29,9 @@ export interface NewPaper {
   source_type: SourceType
   source_url: string | null
   solution_paper_id?: string | null
+  /** Left out (or null) = read it from the title instead. */
+  exam_year?: number | null
+  exam_shift?: number | null
 }
 
 export interface Profile {

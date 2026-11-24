@@ -9,6 +9,10 @@ https://mppolicepyqs.vercel.app
 - Search across titles, folders and tags
 - Folder chips built automatically from the folders you use
 - Filter: **All / Not done / Done**
+- A **Recently added** shelf of the newest uploads, with a *N new* badge when
+  something appeared since the visitor's last visit on that phone
+- **Year** and **Shift** chips under the folder chips (they appear once the
+  library holds more than one year / shift)
 - Every card has **Open** (Drive viewer), **Download**, **Share** and a **Done** tick
 - **Report a problem** on every card — no account needed
 - Filtered lists are shareable: the search, folder and All/Not done/Done switch live in
@@ -106,6 +110,8 @@ The current view lives in the address bar:
 | `?q=nov+2025` | the search box |
 | `&cat=MATHS%20MATERIAL` | the folder chip that is selected |
 | `&show=done` (or `open`) | the All / Not done / Done switch |
+| `&y=2023` | the year chip |
+| `&shift=2` | the shift chip |
 
 When any of those is set, a **Copy link** button appears next to the filter tabs. Paste
 that link into WhatsApp or Telegram and whoever opens it lands on exactly that list —
@@ -114,6 +120,57 @@ link is just the page's address.
 
 If a shared link names a folder you have since renamed, the app shows every paper and
 says so, instead of an empty screen.
+
+## Year and shift filters
+
+Two rows of chips sit under the folder chips:
+
+- **Year** — one chip per exam year (`2025`, `2023`, …), newest first
+- **Shift** — `Any`, `1`, `2`, …
+
+A row only appears once your library actually holds more than one value for it, so a
+single-exam library does not show a filter that filters nothing. Tap an active chip again
+to clear it. `All` / `Any` clears the row.
+
+Where the values come from:
+
+- New PDFs: the year and shift are **read out of the title** (`… 07 Nov 2025 Shift 2`).
+  The Add panel also has optional **Exam year** and **Shift** fields; fill them only
+  when the title does not carry the date.
+- Existing PDFs: back-filled from their titles by the database migration.
+- Maths material has no year or shift, so it drops out of the list when a shift is
+  selected — that is intended.
+- Edit a paper to change either value by hand.
+
+## Recently added
+
+The shelf above the folder chips shows the **six newest uploads by date**, whatever order
+you have dragged the main list into. Tapping a tile opens the PDF in Drive.
+
+- The *N new* badge counts papers that were not in the library on this phone's last
+  visit (`pyq:seenPapers` in `localStorage`). A first visit shows no badge.
+- The shelf is hidden while a search or any filter is active — then the list itself is
+  what the student asked for.
+- Your manual order is untouched: the shelf is a shortcut, not a re-sort.
+
+## Tags
+
+Tags are tidied on the way into the database (`normaliseTags` in `src/lib/exam.ts`, and
+the same rules in `schema.sql`):
+
+| You type | Stored |
+| --- | --- |
+| `BATTA`, `batta` | `Batta` |
+| `SQUARES 1 to 50`, `squares` | `Squares` |
+| `CUBES`, `cubes 1 to 40` | `Cubes` |
+| `Multiple tables`, `tables` | `Tables` |
+| `PRIME NUMBERS`, `prime numbers between 1 to 1000` | `Prime numbers` |
+| `Maths formulae`, `maths formula` | `Maths formula` |
+
+Tags that only repeat something the card already shows are dropped:
+`Shift 1`, `08 Nov 2025`, `Solution`, `Question paper`, `Answer key`, and a bare year
+such as `2023` (the year chips cover that). Duplicates ignoring case are collapsed, and
+the list is kept within the database limits (12 tags, 300 characters).
 
 ## Profile — username and picture
 
@@ -224,7 +281,7 @@ policies and the admin check). It is already applied to the live project.
 
 | Table | Purpose |
 | --- | --- |
-| `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source |
+| `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source, `exam_year`, `exam_shift`, `solution_paper_id` |
 | `paper_progress` | `(user_id, paper_id)` rows — each student's Done marks |
 | `profiles` | One row per account: username + avatar URL |
 | `paper_reports` | Student-submitted problem notes (reason, details, status) |
@@ -250,7 +307,7 @@ Security model:
 
 ## Possible next steps
 
-Answer keys (done), report a problem (done), shareable filtered lists (done). Still
-open: "recently added" row, year/shift filters, bookmarks, notes and difficulty ratings,
+Done: answer keys, report a problem, shareable filtered lists, recently added,
+year/shift filters, tidy tags. Still open: bookmarks, notes and difficulty ratings,
 self-reported timed practice, a small dashboard, installable PWA, Hindi UI, and admin
 bulk tools (link-health checks need a server-side job — Drive blocks browser CORS).

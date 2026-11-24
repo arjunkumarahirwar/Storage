@@ -47,6 +47,8 @@ export function AddPapersPanel({
   const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>({})
   const [category, setCategory] = useState('MP Police Constable Previous Papers')
   const [tags, setTags] = useState('')
+  const [year, setYear] = useState('')
+  const [shift, setShift] = useState('')
   const [sourceType, setSourceType] = useState<SourceType>('own')
   const [sourceUrl, setSourceUrl] = useState('')
   const [busy, setBusy] = useState(false)
@@ -59,6 +61,8 @@ export function AddPapersPanel({
   const [editSourceType, setEditSourceType] = useState<SourceType>('own')
   const [editSourceUrl, setEditSourceUrl] = useState('')
   const [editSolutionId, setEditSolutionId] = useState('')
+  const [editYear, setEditYear] = useState('')
+  const [editShift, setEditShift] = useState('')
 
   const answerKeyChoices = useMemo(() => {
     if (!editing) return []
@@ -78,10 +82,14 @@ export function AddPapersPanel({
       setEditSourceType(editing.source_type)
       setEditSourceUrl(editing.source_url ?? '')
       setEditSolutionId(editing.solution_paper_id ?? '')
+      setEditYear(editing.exam_year ? String(editing.exam_year) : '')
+      setEditShift(editing.exam_shift ? String(editing.exam_shift) : '')
     } else {
       setRaw('')
       setTitleOverrides({})
       setTags('')
+      setYear('')
+      setShift('')
       setSourceType('own')
       setSourceUrl('')
       setCategory((current) => current || 'MP Police Constable Previous Papers')
@@ -141,6 +149,8 @@ export function AddPapersPanel({
       tags: parseTagInput(tags),
       source_type: sourceType,
       source_url: sourceType === 'official' ? sourceUrl.trim() : null,
+      exam_year: year ? Number(year) : null,
+      exam_shift: shift ? Number(shift) : null,
     }))
 
     setBusy(true)
@@ -195,6 +205,8 @@ export function AddPapersPanel({
         source_type: editSourceType,
         source_url: editSourceType === 'official' ? editSourceUrl.trim() : null,
         solution_paper_id: editSolutionId || null,
+        exam_year: editYear ? Number(editYear) : null,
+        exam_shift: editShift ? Number(editShift) : null,
       })
       onToast('Paper updated.', 'success')
       onClose()
@@ -257,6 +269,14 @@ export function AddPapersPanel({
               className={field}
             />
           </div>
+          <ExamFields
+            idPrefix="edit"
+            year={editYear}
+            shift={editShift}
+            onYear={setEditYear}
+            onShift={setEditShift}
+            autoHint={false}
+          />
           <div>
             <label className={labelClass} htmlFor="edit-solution">
               Answer key (optional)
@@ -403,6 +423,15 @@ export function AddPapersPanel({
             </div>
           </div>
 
+          <ExamFields
+            idPrefix="add"
+            year={year}
+            shift={shift}
+            onYear={setYear}
+            onShift={setShift}
+            autoHint
+          />
+
           <datalist id="category-options">
             {categories.map((option) => (
               <option key={option} value={option} />
@@ -421,6 +450,67 @@ export function AddPapersPanel({
         </form>
       )}
     </Modal>
+  )
+}
+
+function ExamFields({
+  idPrefix,
+  year,
+  shift,
+  onYear,
+  onShift,
+  autoHint,
+}: {
+  idPrefix: string
+  year: string
+  shift: string
+  onYear: (value: string) => void
+  onShift: (value: string) => void
+  autoHint: boolean
+}) {
+  return (
+    <div className="grid gap-2.5 sm:grid-cols-2">
+      <div>
+        <label className={labelClass} htmlFor={`${idPrefix}-year`}>
+          Exam year{' '}
+          <span className="font-normal text-ink-400 dark:text-ink-500">(optional)</span>
+        </label>
+        <input
+          id={`${idPrefix}-year`}
+          type="number"
+          inputMode="numeric"
+          min={1990}
+          max={2100}
+          value={year}
+          onChange={(event) => onYear(event.target.value.slice(0, 4))}
+          placeholder={autoHint ? 'Read from the title' : 'Not set'}
+          className={field}
+        />
+      </div>
+      <div>
+        <label className={labelClass} htmlFor={`${idPrefix}-shift`}>
+          Shift
+        </label>
+        <select
+          id={`${idPrefix}-shift`}
+          value={shift}
+          onChange={(event) => onShift(event.target.value)}
+          className={field}
+        >
+          <option value="">{autoHint ? 'Read from the title' : 'No shift'}</option>
+          <option value="1">Shift 1</option>
+          <option value="2">Shift 2</option>
+          <option value="3">Shift 3</option>
+          <option value="4">Shift 4</option>
+        </select>
+      </div>
+      {autoHint && (
+        <p className="text-[11.5px] leading-relaxed text-ink-400 sm:col-span-2 dark:text-ink-500">
+          Leave both blank and the year and shift are picked out of titles like
+          “07 Nov 2025 Shift 2”. Fill them in only when the title does not say.
+        </p>
+      )}
+    </div>
   )
 }
 

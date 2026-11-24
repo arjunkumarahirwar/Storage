@@ -24,6 +24,9 @@ create table if not exists public.papers (
   sort_order    integer not null default 0,
   -- The answer key attached to this paper (another row in this table).
   solution_paper_id uuid references public.papers (id) on delete set null,
+  -- Which exam this belongs to: 2025 / shift 2. Null for maths material.
+  exam_year     integer,
+  exam_shift    integer,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -32,12 +35,16 @@ create table if not exists public.papers (
 alter table public.papers
   add column if not exists sort_order integer not null default 0,
   add column if not exists solution_paper_id uuid
-    references public.papers (id) on delete set null;
+    references public.papers (id) on delete set null,
+  add column if not exists exam_year integer,
+  add column if not exists exam_shift integer;
 
 alter table public.papers
   drop constraint if exists papers_title_check,
   drop constraint if exists papers_drive_file_id_check,
   drop constraint if exists papers_solution_self_check,
+  drop constraint if exists papers_exam_year_check,
+  drop constraint if exists papers_exam_shift_check,
   drop constraint if exists papers_category_check,
   drop constraint if exists papers_tags_check,
   drop constraint if exists papers_source_type_check,
@@ -64,13 +71,60 @@ alter table public.papers
       or (source_type = 'official' and source_url ~* '^https://[^[:space:]]+$')
     ),
   add constraint papers_solution_self_check
-    check (solution_paper_id is null or solution_paper_id <> id);
+    check (solution_paper_id is null or solution_paper_id <> id),
+  add constraint papers_exam_year_check
+    check (exam_year is null or exam_year between 1990 and 2100),
+  add constraint papers_exam_shift_check
+    check (exam_shift is null or exam_shift between 1 and 4);
 
 create index if not exists papers_category_idx on public.papers (category);
 create index if not exists papers_created_at_idx on public.papers (created_at desc);
 create index if not exists papers_tags_gin_idx on public.papers using gin (tags);
 create index if not exists papers_sort_order_idx on public.papers (sort_order);
 create index if not exists papers_solution_idx on public.papers (solution_paper_id);
+create index if not exists papers_exam_year_idx on public.papers (exam_year);
+create index if not exists papers_exam_shift_idx on public.papers (exam_shift);
+
+-- Read the year and shift out of titles like "MP Police Constable 07 Nov 2025
+-- Shift 2". 19xx/20xx only, so "1 TO 1000" in a maths title is not a year.
+-- Safe to re-run: only fills what is still empty.
+update public.papers
+   set exam_year  = coalesce(exam_year, substring(title from '19[0-9]{2}|20[0-9]{2}')::int),
+       exam_shift = coalesce(
+         exam_shift,
+         (regexp_match(title, '[Ss]hift[[:space:]]*-?[[:space:]]*([0-9])'))[1]::int
+       )
+ where exam_year is null or exam_shift is null;
+
+-- One spelling per idea, and no tags that repeat the title, the folder, the
+-- year / shift columns or the answer-key link. Mirrors normaliseTags().
+with mapping(k, v) as (values
+  ('batta', 'Batta'),
+  ('squares', 'Squares'),
+  ('squares 1 to 50', 'Squares'),
+  ('cubes', 'Cubes'),
+  ('cubes 1 to 40', 'Cubes'),
+  ('tables', 'Tables'),
+  ('multiple tables', 'Tables'),
+  ('multiple tables 1 to 50', 'Tables'),
+  ('prime numbers', 'Prime numbers'),
+  ('prime numbers between 1 to 1000', 'Prime numbers'),
+  ('maths formula', 'Maths formula'),
+  ('maths formulae', 'Maths formula'),
+  ('math formula', 'Maths formula')
+)
+update public.papers p
+   set tags = coalesce((
+     select array_agg(distinct coalesce(m.v, btrim(t)) order by coalesce(m.v, btrim(t)))
+       from unnest(p.tags) as t
+       left join mapping m on m.k = lower(btrim(t))
+      where btrim(t) <> ''
+        and lower(btrim(t)) !~ '^shift[[:space:]]*[0-9]$'
+        and lower(btrim(t)) !~ '^[0-9]{1,2}[[:space:]]+[a-z]{3,9}[[:space:]]+(19|20)[0-9]{2}$'
+        and lower(btrim(t)) !~ '^(solution|question paper|answer key)$'
+        and lower(btrim(t)) !~ '^[0-9]{4}$'
+   ), '{}')
+ where cardinality(p.tags) > 0;
 
 -- Link every "<paper> Solution" row to the paper with the matching title.
 -- Safe to re-run: only fills links that are still empty.

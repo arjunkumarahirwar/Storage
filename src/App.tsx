@@ -5,6 +5,7 @@ import { AuthDialog } from './components/AuthDialog'
 import { CategoryChips } from './components/CategoryChips'
 import { ConfirmDialog } from './components/ConfirmDialog'
 import { EmptyState, PaperSkeleton } from './components/EmptyState'
+import { ExamFilters } from './components/ExamFilters'
 import { FilterTabs } from './components/FilterTabs'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
@@ -12,6 +13,7 @@ import { HeroCard } from './components/HeroCard'
 import { CopyIcon, DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
 import { PaperCard } from './components/PaperCard'
 import { ProfileDialog } from './components/ProfileDialog'
+import { RecentStrip } from './components/RecentStrip'
 import { ReportDialog } from './components/ReportDialog'
 import { ReportsDialog } from './components/ReportsDialog'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
@@ -43,14 +45,41 @@ const matchesQuery = (paper: Paper, tokens: string[], extra = '') => {
  */
 const readFiltersFromUrl = () => {
   if (typeof window === 'undefined') {
-    return { query: '', category: 'All', filter: 'all' as ProgressFilter }
+    return {
+      query: '',
+      category: 'All',
+      filter: 'all' as ProgressFilter,
+      year: null as number | null,
+      shift: null as number | null,
+    }
   }
   const params = new URLSearchParams(window.location.search)
   const show = params.get('show')
+  const rawYear = Number(params.get('y'))
+  const rawShift = Number(params.get('shift'))
   return {
     query: params.get('q') ?? '',
     category: params.get('cat') ?? 'All',
     filter: (show === 'done' || show === 'open' ? show : 'all') as ProgressFilter,
+    year:
+      Number.isInteger(rawYear) && rawYear >= 1990 && rawYear <= 2100 ? rawYear : null,
+    shift:
+      Number.isInteger(rawShift) && rawShift >= 1 && rawShift <= 4 ? rawShift : null,
+  }
+}
+
+/** The ids the visitor had on the list last time they were here. */
+const SEEN_KEY = 'pyq:seenPapers:v1'
+
+const readSeenPapers = (): Set<string> | null => {
+  try {
+    const raw = window.localStorage.getItem(SEEN_KEY)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return null
+    return new Set(parsed.filter((value): value is string => typeof value === 'string'))
+  } catch {
+    return null
   }
 }
 
@@ -89,6 +118,8 @@ export default function App() {
   const [query, setQuery] = useState(initialFilters.query)
   const [category, setCategory] = useState(initialFilters.category)
   const [filter, setFilter] = useState<ProgressFilter>(initialFilters.filter)
+  const [year, setYear] = useState<number | null>(initialFilters.year)
+  const [shift, setShift] = useState<number | null>(initialFilters.shift)
   const [reportTarget, setReportTarget] = useState<Paper | null>(null)
   const [reportsOpen, setReportsOpen] = useState(false)
   const [reportedIds, setReportedIds] = useState<Set<string>>(() => new Set(readReported()))
@@ -173,10 +204,29 @@ export default function App() {
         ].join(' ')
         return (
           matchesQuery(paper, tokens, extra) &&
-          (category === 'All' || paper.category === category)
+          (category === 'All' || paper.category === category) &&
+          (year === null || paper.exam_year === year) &&
+          (shift === null || paper.exam_shift === shift)
         )
       }),
-    [papers, tokens, category, originalFor],
+    [papers, tokens, category, year, shift, originalFor],
+  )
+
+  // Years newest first, shifts low to high — the order students think in.
+  const examYears = useMemo(
+    () =>
+      [...new Set(papers.map((paper) => paper.exam_year))]
+        .filter((value): value is number => typeof value === 'number')
+        .sort((a, b) => b - a),
+    [papers],
+  )
+
+  const examShifts = useMemo(
+    () =>
+      [...new Set(papers.map((paper) => paper.exam_shift))]
+        .filter((value): value is number => typeof value === 'number')
+        .sort((a, b) => a - b),
+    [papers],
   )
 
   const filterCounts = useMemo(() => {
@@ -208,6 +258,37 @@ export default function App() {
   )
 
   const visibleIds = useMemo(() => visible.map((paper) => paper.id), [visible])
+
+  // Newest uploads by date, whatever order the administrator arranged the
+  // library in. The ids the visitor saw last time tell us what is actually new.
+  const [seenPapers] = useState<Set<string> | null>(() => readSeenPapers())
+
+  const recentPapers = useMemo(
+    () =>
+      [...papers]
+        .sort((a, b) => b.created_at.localeCompare(a.created_at))
+        .slice(0, 6),
+    [papers],
+  )
+
+  const newPaperCount = useMemo(() => {
+    if (!seenPapers || !papers.length) return 0
+    const fresh = papers.filter((paper) => !seenPapers.has(paper.id)).length
+    // First visit, or a library that was replaced: no badge, just the shelf.
+    return fresh === papers.length ? 0 : fresh
+  }, [papers, seenPapers])
+
+  useEffect(() => {
+    if (!papers.length) return
+    try {
+      window.localStorage.setItem(
+        SEEN_KEY,
+        JSON.stringify(papers.map((paper) => paper.id)),
+      )
+    } catch {
+      // Private mode, storage full — the shelf still works.
+    }
+  }, [papers])
 
   /**
    * Cards are never re-ordered in React while a finger is down. The held card
@@ -454,13 +535,15 @@ export default function App() {
     if (query.trim()) params.set('q', query.trim())
     if (category !== 'All') params.set('cat', category)
     if (filter !== 'all') params.set('show', filter)
+    if (year !== null) params.set('y', String(year))
+    if (shift !== null) params.set('shift', String(shift))
     const search = params.toString()
     // The hash is left alone: a password-reset link lives there.
     const hash = window.location.hash
     const next = `${window.location.pathname}${search ? `?${search}` : ''}${hash}`
     const current = `${window.location.pathname}${window.location.search}${hash}`
     if (next !== current) window.history.replaceState(null, '', next)
-  }, [query, category, filter])
+  }, [query, category, filter, year, shift])
 
   // A shared link can name a folder the library has since renamed.
   const categoryChecked = useRef(false)
@@ -474,13 +557,19 @@ export default function App() {
   }, [loading, papers.length, category, categories, push])
 
   const filtersActive =
-    Boolean(query.trim()) || category !== 'All' || filter !== 'all'
+    Boolean(query.trim()) ||
+    category !== 'All' ||
+    filter !== 'all' ||
+    year !== null ||
+    shift !== null
 
   const copyViewLink = useCallback(async () => {
     const params = new URLSearchParams()
     if (query.trim()) params.set('q', query.trim())
     if (category !== 'All') params.set('cat', category)
     if (filter !== 'all') params.set('show', filter)
+    if (year !== null) params.set('y', String(year))
+    if (shift !== null) params.set('shift', String(shift))
     const search = params.toString()
     const url = `${window.location.origin}${window.location.pathname}${search ? `?${search}` : ''}`
 
@@ -500,12 +589,14 @@ export default function App() {
       }
     }
     push('Could not copy the link — long-press the address bar instead.', 'error')
-  }, [query, category, filter, push])
+  }, [query, category, filter, year, shift, push])
 
   const clearFilters = useCallback(() => {
     setQuery('')
     setCategory('All')
     setFilter('all')
+    setYear(null)
+    setShift(null)
   }, [])
 
   // ---- problem reports ------------------------------------------------------
@@ -644,12 +735,24 @@ export default function App() {
           </div>
         )}
 
+        {!loading && !filtersActive && recentPapers.length > 0 && (
+          <RecentStrip papers={recentPapers} newCount={newPaperCount} />
+        )}
+
         <div className="mt-4 space-y-3">
           <CategoryChips
             categories={categories}
             total={papers.length}
             active={category}
             onChange={setCategory}
+          />
+          <ExamFilters
+            years={examYears}
+            shifts={examShifts}
+            year={year}
+            shift={shift}
+            onYear={setYear}
+            onShift={setShift}
           />
           <div className="flex items-center gap-2.5">
             <div className="flex-1">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { parseExamInfo, normaliseTags } from '../lib/exam'
 import { supabase } from '../lib/supabase'
 import type { NewPaper, Paper } from '../lib/types'
 
@@ -129,9 +130,21 @@ export function usePapers(): PapersState {
       const result: AddResult = { inserted: 0, failures: [] }
       if (!rows.length) return result
 
+      // The year and shift are read from the title unless the form said
+      // otherwise, and the tags are tidied so one idea has one spelling.
+      const prepared: NewPaper[] = rows.map((row) => {
+        const parsed = parseExamInfo(row.title)
+        return {
+          ...row,
+          tags: normaliseTags(row.tags),
+          exam_year: row.exam_year ?? parsed.year,
+          exam_shift: row.exam_shift ?? parsed.shift,
+        }
+      })
+
       const { data, error: insertError } = await supabase
         .from('papers')
-        .insert(rows)
+        .insert(prepared)
         .select('*')
 
       if (!insertError) {
@@ -145,7 +158,7 @@ export function usePapers(): PapersState {
       // Bulk insert is all-or-nothing: retry one by one so a single duplicate
       // or bad row does not stop the rest.
       const addedOneByOne: Paper[] = []
-      for (const row of rows) {
+      for (const row of prepared) {
         const { data: single, error: rowError } = await supabase
           .from('papers')
           .insert(row)
@@ -172,9 +185,14 @@ export function usePapers(): PapersState {
 
   const updatePaper = useCallback(
     async (id: string, patch: Partial<NewPaper>) => {
+      const clean: Partial<NewPaper> = {
+        ...patch,
+        ...(patch.tags ? { tags: normaliseTags(patch.tags) } : {}),
+      }
+
       const { data, error: updateError } = await supabase
         .from('papers')
-        .update(patch)
+        .update(clean)
         .eq('id', id)
         .select('*')
         .single()
