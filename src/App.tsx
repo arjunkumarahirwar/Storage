@@ -9,19 +9,22 @@ import { FilterTabs } from './components/FilterTabs'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { HeroCard } from './components/HeroCard'
-import { DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
+import { CopyIcon, DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
 import { PaperCard } from './components/PaperCard'
 import { ProfileDialog } from './components/ProfileDialog'
+import { ReportDialog } from './components/ReportDialog'
+import { ReportsDialog } from './components/ReportsDialog'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
 import { usePapers } from './hooks/usePapers'
 import { useProfile } from './hooks/useProfile'
 import { useProgress } from './hooks/useProgress'
+import { useReports } from './hooks/useReports'
 import { useTheme } from './hooks/useTheme'
 import { useToasts } from './hooks/useToasts'
 import { driveViewUrl } from './lib/drive'
-import type { Paper, ProgressFilter } from './lib/types'
+import type { NewReport, Paper, ProgressFilter } from './lib/types'
 
 const listCards = () =>
   Array.from(document.querySelectorAll<HTMLElement>('[data-paper-id]'))
@@ -32,6 +35,36 @@ const matchesQuery = (paper: Paper, tokens: string[], extra = '') => {
     .join(' ')
     .toLowerCase()
   return tokens.every((token) => haystack.includes(token))
+}
+
+/**
+ * A filtered list is worth sharing: the search, the folder and the done/open
+ * switch all live in the address, so WhatsApp can carry them.
+ */
+const readFiltersFromUrl = () => {
+  if (typeof window === 'undefined') {
+    return { query: '', category: 'All', filter: 'all' as ProgressFilter }
+  }
+  const params = new URLSearchParams(window.location.search)
+  const show = params.get('show')
+  return {
+    query: params.get('q') ?? '',
+    category: params.get('cat') ?? 'All',
+    filter: (show === 'done' || show === 'open' ? show : 'all') as ProgressFilter,
+  }
+}
+
+const REPORTED_KEY = 'pyq:reported:v1'
+
+const readReported = (): string[] => {
+  try {
+    const raw = window.localStorage.getItem(REPORTED_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((value): value is string => typeof value === 'string')
+  } catch {
+    return []
+  }
 }
 
 export default function App() {
@@ -50,10 +83,15 @@ export default function App() {
   } = usePapers()
   const progress = useProgress(auth.session?.user.id ?? null)
   const { profile, needsSetup, saveProfile } = useProfile(auth.session?.user.id ?? null)
+  const reports = useReports(auth.isAdmin)
 
-  const [query, setQuery] = useState('')
-  const [category, setCategory] = useState('All')
-  const [filter, setFilter] = useState<ProgressFilter>('all')
+  const initialFilters = useMemo(readFiltersFromUrl, [])
+  const [query, setQuery] = useState(initialFilters.query)
+  const [category, setCategory] = useState(initialFilters.category)
+  const [filter, setFilter] = useState<ProgressFilter>(initialFilters.filter)
+  const [reportTarget, setReportTarget] = useState<Paper | null>(null)
+  const [reportsOpen, setReportsOpen] = useState(false)
+  const [reportedIds, setReportedIds] = useState<Set<string>>(() => new Set(readReported()))
   const [authOpen, setAuthOpen] = useState(false)
   const [panelOpen, setPanelOpen] = useState(false)
   const [editing, setEditing] = useState<Paper | null>(null)
@@ -410,6 +448,107 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame)
   }, [draggingId])
 
+  // ---- shareable views: ?q=…&cat=…&show=done --------------------------------
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (query.trim()) params.set('q', query.trim())
+    if (category !== 'All') params.set('cat', category)
+    if (filter !== 'all') params.set('show', filter)
+    const search = params.toString()
+    // The hash is left alone: a password-reset link lives there.
+    const hash = window.location.hash
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}${hash}`
+    const current = `${window.location.pathname}${window.location.search}${hash}`
+    if (next !== current) window.history.replaceState(null, '', next)
+  }, [query, category, filter])
+
+  // A shared link can name a folder the library has since renamed.
+  const categoryChecked = useRef(false)
+  useEffect(() => {
+    if (loading || !papers.length || categoryChecked.current) return
+    categoryChecked.current = true
+    if (category !== 'All' && !categories.some((entry) => entry.name === category)) {
+      setCategory('All')
+      push('That folder is gone — showing every paper instead.', 'info')
+    }
+  }, [loading, papers.length, category, categories, push])
+
+  const filtersActive =
+    Boolean(query.trim()) || category !== 'All' || filter !== 'all'
+
+  const copyViewLink = useCallback(async () => {
+    const params = new URLSearchParams()
+    if (query.trim()) params.set('q', query.trim())
+    if (category !== 'All') params.set('cat', category)
+    if (filter !== 'all') params.set('show', filter)
+    const search = params.toString()
+    const url = `${window.location.origin}${window.location.pathname}${search ? `?${search}` : ''}`
+
+    try {
+      await navigator.clipboard.writeText(url)
+      push('Link copied — it opens this exact list.', 'success')
+      return
+    } catch {
+      // Some browsers only allow the share sheet here.
+    }
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({ title: 'MP Police PYQ Library', url })
+        return
+      } catch {
+        // The student closed the sheet, or sharing is not allowed.
+      }
+    }
+    push('Could not copy the link — long-press the address bar instead.', 'error')
+  }, [query, category, filter, push])
+
+  const clearFilters = useCallback(() => {
+    setQuery('')
+    setCategory('All')
+    setFilter('all')
+  }, [])
+
+  // ---- problem reports ------------------------------------------------------
+  const rememberReported = useCallback((paperId: string) => {
+    setReportedIds((current) => {
+      const next = new Set(current)
+      next.add(paperId)
+      try {
+        window.localStorage.setItem(
+          REPORTED_KEY,
+          JSON.stringify([...next].slice(-200)),
+        )
+      } catch {
+        // Storage is full or blocked; the report is already saved server-side.
+      }
+      return next
+    })
+  }, [])
+
+  const sendReport = useCallback(
+    async (report: NewReport) => {
+      await reports.submit(report)
+      rememberReported(report.paper_id)
+      void reports.reload()
+    },
+    [reports, rememberReported],
+  )
+
+  const resolveReport = useCallback(
+    (id: string) => {
+      void reports
+        .resolve(id)
+        .then(() => push('Marked resolved.', 'success'))
+        .catch((caught: unknown) =>
+          push(
+            caught instanceof Error ? caught.message : 'Could not close that report.',
+            'error',
+          ),
+        )
+    },
+    [reports, push],
+  )
+
   const openAdd = useCallback(() => {
     setEditing(null)
     setPanelOpen(true)
@@ -469,6 +608,11 @@ export default function App() {
         avatarUrl={profile?.avatar_url ?? null}
         onSignIn={() => setAuthOpen(true)}
         onEditProfile={() => setProfileOpen(true)}
+        reportCount={reports.openCount}
+        onOpenReports={() => {
+          setReportsOpen(true)
+          void reports.reload()
+        }}
         onSignOut={() => {
           void auth.signOut()
           setProfileOpen(false)
@@ -511,6 +655,18 @@ export default function App() {
             <div className="flex-1">
               <FilterTabs value={filter} counts={filterCounts} onChange={setFilter} />
             </div>
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => void copyViewLink()}
+                title="Copy a link that opens this exact list"
+                aria-label="Copy a link to this filtered list"
+                className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-2.5 text-[12px] font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 active:scale-[0.98] dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/20"
+              >
+                <CopyIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Copy link</span>
+              </button>
+            )}
             {progress.mode === 'device' && papers.length > 0 && (
               <button
                 type="button"
@@ -579,6 +735,8 @@ export default function App() {
                 }
                 onToggleDone={() => void progress.toggleDone(paper.id)}
                 onShare={() => void share(paper)}
+                onReport={() => setReportTarget(paper)}
+                reported={reportedIds.has(paper.id)}
                 onEdit={() => openEdit(paper)}
                 onDelete={() => setDeleteTarget(paper)}
               />
@@ -589,11 +747,7 @@ export default function App() {
               variant={papers.length ? 'search' : 'library'}
               isAdmin={auth.isAdmin}
               onAdd={openAdd}
-              onClear={() => {
-                setQuery('')
-                setCategory('All')
-                setFilter('all')
-              }}
+              onClear={clearFilters}
             />
           )}
         </div>
@@ -675,6 +829,29 @@ export default function App() {
         message={`“${deleteTarget?.title ?? ''}” will be removed from the library for everyone. Your Drive file is not touched.`}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
+      />
+
+      <ReportDialog
+        open={reportTarget !== null}
+        paper={reportTarget}
+        onClose={() => setReportTarget(null)}
+        onSubmit={sendReport}
+        onSuccess={push}
+      />
+
+      <ReportsDialog
+        open={reportsOpen && auth.isAdmin}
+        onClose={() => setReportsOpen(false)}
+        reports={reports.reports}
+        loading={reports.loading}
+        error={reports.error}
+        onReload={() => void reports.reload()}
+        onResolve={resolveReport}
+        paperFor={(id) => (id ? (papersById.get(id) ?? null) : null)}
+        onEditPaper={(paper) => {
+          setReportsOpen(false)
+          openEdit(paper)
+        }}
       />
 
       <Toasts toasts={toasts} onDismiss={dismiss} />

@@ -5,6 +5,7 @@
 -- papers          one row per PDF stored in Google Drive
 -- paper_progress  one row per student per finished paper
 -- profiles        one row per person: username + avatar picture
+-- paper_reports   student-submitted "this link is broken / wrong file" notes
 -- avatars         public storage bucket holding those pictures
 -- ============================================================================
 
@@ -136,6 +137,51 @@ create table if not exists public.profiles (
 create unique index if not exists profiles_username_lower_key
   on public.profiles (lower(username));
 
+-- -------------------------------------------------------- paper_reports ----
+-- "This Drive link does not open" / "wrong file" notes from students.
+-- Students never need an account to send one; only the administrator reads them.
+-- paper_title is copied in so a report survives the paper being deleted.
+create table if not exists public.paper_reports (
+  id          uuid primary key default gen_random_uuid(),
+  paper_id    uuid references public.papers (id) on delete cascade,
+  paper_title text not null,
+  reason      text not null default 'link_broken',
+  details     text,
+  -- Filled in automatically for signed-in students, null for guests.
+  reporter_id uuid default auth.uid() references auth.users (id) on delete set null,
+  status      text not null default 'open',
+  created_at  timestamptz not null default now(),
+  resolved_at timestamptz
+);
+
+-- Re-runs on an existing database pick up new columns / constraints.
+alter table public.paper_reports
+  add column if not exists details text,
+  add column if not exists status text not null default 'open',
+  add column if not exists resolved_at timestamptz;
+
+alter table public.paper_reports
+  drop constraint if exists paper_reports_title_check,
+  drop constraint if exists paper_reports_reason_check,
+  drop constraint if exists paper_reports_status_check,
+  drop constraint if exists paper_reports_details_check;
+
+alter table public.paper_reports
+  add constraint paper_reports_title_check
+    check (char_length(btrim(paper_title)) between 1 and 180),
+  add constraint paper_reports_reason_check
+    check (reason in ('link_broken', 'wrong_file', 'missing_key', 'wrong_key', 'other')),
+  add constraint paper_reports_status_check
+    check (status in ('open', 'resolved')),
+  add constraint paper_reports_details_check
+    check (details is null or char_length(details) <= 600);
+
+create index if not exists paper_reports_paper_idx
+  on public.paper_reports (paper_id);
+create index if not exists paper_reports_open_idx
+  on public.paper_reports (created_at desc)
+  where status = 'open';
+
 -- ------------------------------------------------------------ updated_at ----
 create or replace function public.touch_updated_at()
 returns trigger
@@ -179,6 +225,8 @@ $$;
 -- ------------------------------------------------------------------ RLS -----
 alter table public.papers enable row level security;
 alter table public.paper_progress enable row level security;
+alter table public.profiles enable row level security;
+alter table public.paper_reports enable row level security;
 
 drop policy if exists "Anyone can read the library" on public.papers;
 create policy "Anyone can read the library"
@@ -249,6 +297,38 @@ create policy "Update your own profile"
   using ((select auth.uid()) = id)
   with check ((select auth.uid()) = id);
 
+-- Anyone may report a problem, signed in or not. They cannot file a report as
+-- somebody else, and they cannot file one that is already closed.
+drop policy if exists "Anyone can report a problem" on public.paper_reports;
+create policy "Anyone can report a problem"
+  on public.paper_reports for insert
+  to anon, authenticated
+  with check (
+    status = 'open'
+    and resolved_at is null
+    and (reporter_id is null or reporter_id = (select auth.uid()))
+  );
+
+-- Only the administrator ever sees the inbox.
+drop policy if exists "Only the administrator reads reports" on public.paper_reports;
+create policy "Only the administrator reads reports"
+  on public.paper_reports for select
+  to authenticated
+  using ((select public.is_library_admin()));
+
+drop policy if exists "Only the administrator closes reports" on public.paper_reports;
+create policy "Only the administrator closes reports"
+  on public.paper_reports for update
+  to authenticated
+  using ((select public.is_library_admin()))
+  with check ((select public.is_library_admin()));
+
+drop policy if exists "Only the administrator deletes reports" on public.paper_reports;
+create policy "Only the administrator deletes reports"
+  on public.paper_reports for delete
+  to authenticated
+  using ((select public.is_library_admin()));
+
 -- ------------------------------------------------------- avatars (storage) --
 -- Public bucket; every person may only write inside their own <user-id>/ folder.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -283,6 +363,9 @@ grant insert, update, delete on public.papers to authenticated;
 grant select, insert, update, delete on public.paper_progress to authenticated;
 grant select on public.profiles to anon, authenticated;
 grant insert, update on public.profiles to authenticated;
+-- Reporting is open to guests; reading and closing reports is admin-only (RLS).
+grant insert on public.paper_reports to anon, authenticated;
+grant select, update, delete on public.paper_reports to authenticated;
 grant execute on function public.is_library_admin() to authenticated;
 revoke all on function public.reorder_papers(uuid[], integer[]) from public, anon;
 grant execute on function public.reorder_papers(uuid[], integer[]) to authenticated;

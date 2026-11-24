@@ -37,6 +37,61 @@ export interface Profile {
 
 export type ProgressFilter = 'all' | 'open' | 'done'
 
+/** Why a student says a paper is wrong. Mirrors paper_reports_reason_check. */
+export type ReportReason =
+  | 'link_broken'
+  | 'wrong_file'
+  | 'missing_key'
+  | 'wrong_key'
+  | 'other'
+
+export interface PaperReport {
+  id: string
+  paper_id: string | null
+  paper_title: string
+  reason: ReportReason
+  details: string | null
+  reporter_id: string | null
+  status: 'open' | 'resolved'
+  created_at: string
+  resolved_at: string | null
+}
+
+/** What the report form sends. reporter_id is filled in by the database. */
+export interface NewReport {
+  paper_id: string
+  paper_title: string
+  reason: ReportReason
+  details: string | null
+}
+
+export const REPORT_REASONS: { value: ReportReason; label: string; hint: string }[] = [
+  {
+    value: 'link_broken',
+    label: 'The PDF does not open',
+    hint: 'Drive says "file not found", or the page stays blank.',
+  },
+  {
+    value: 'wrong_file',
+    label: 'It is a different paper',
+    hint: 'The PDF inside does not match the title.',
+  },
+  {
+    value: 'missing_key',
+    label: 'The answer key is missing',
+    hint: 'There is no answer key for this paper.',
+  },
+  {
+    value: 'wrong_key',
+    label: 'The answer key is wrong',
+    hint: 'It belongs to another shift, or the answers are wrong.',
+  },
+  { value: 'other', label: 'Something else', hint: 'Tell me below.' },
+]
+
+export const reportReasonLabel = (reason: ReportReason) =>
+  REPORT_REASONS.find((entry) => entry.value === reason)?.label ?? 'Problem'
+
 export interface ToastMessage {
   id: number
   text: string

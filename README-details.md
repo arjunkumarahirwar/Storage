@@ -10,6 +10,9 @@ https://mppolicepyqs.vercel.app
 - Folder chips built automatically from the folders you use
 - Filter: **All / Not done / Done**
 - Every card has **Open** (Drive viewer), **Download**, **Share** and a **Done** tick
+- **Report a problem** on every card — no account needed
+- Filtered lists are shareable: the search, folder and All/Not done/Done switch live in
+  the address, and **Copy link** puts the whole view in WhatsApp
 - Progress bar for the visitor's own Done marks
 - Dark mode follows the phone setting (with a manual toggle)
 
@@ -21,6 +24,7 @@ https://mppolicepyqs.vercel.app
 - Edit and delete buttons on every card
 - A small rail on every card: **drag the ⠿ grip, or tap ↑ / ↓**, to set the order everybody sees
 - An **Answer key** picker in the edit form: link a paper to its solution PDF
+- A **Problem reports** inbox in the avatar menu, with a badge for open reports
 
 ## First-time admin login
 
@@ -69,6 +73,47 @@ Notes:
   get a button pointing at a deleted row.
 - The solution is stored as its own row (`papers.solution_paper_id` points at it), so it
   keeps its own title, folder, tags and Drive file. No files are duplicated.
+
+## Report a problem
+
+Students never have to sign in to tell you a PDF is broken.
+
+1. On any card, tap **Report a problem** (next to *Added …* at the bottom of the card).
+2. Pick a reason — the PDF does not open, it is a different paper, the answer key is
+   missing, the answer key is wrong, or something else. There is an optional free-text
+   box (600 characters).
+3. Tap **Send report**. The card then reads **Reported** on that phone, so the same
+   student is not asked again.
+
+You read them from the avatar menu → **Problem reports**. Each report shows the paper
+title, the reason, the note, the date, and whether it came from a signed-in student or
+a guest. From there you can **Open PDF**, **Fix paper** (jumps straight into the edit
+form) or **Mark resolved**.
+
+- The paper title is copied into the report, so a report survives the paper being
+  deleted — you still see what was wrong.
+- Open reports are counted on the menu item; resolved ones drop to the bottom of the
+  dialog automatically.
+- The database lets anyone *insert* a report, but only the administrator may *read* or
+  *close* them (`paper_reports` policies). A guest asking for the list gets nothing.
+
+## Shareable filtered lists
+
+The current view lives in the address bar:
+
+| Part of the link | Means |
+| --- | --- |
+| `?q=nov+2025` | the search box |
+| `&cat=MATHS%20MATERIAL` | the folder chip that is selected |
+| `&show=done` (or `open`) | the All / Not done / Done switch |
+
+When any of those is set, a **Copy link** button appears next to the filter tabs. Paste
+that link into WhatsApp or Telegram and whoever opens it lands on exactly that list —
+search text, folder and filter included. Nothing is stored on the server for this; the
+link is just the page's address.
+
+If a shared link names a folder you have since renamed, the app shows every paper and
+says so, instead of an empty screen.
 
 ## Profile — username and picture
 
@@ -181,11 +226,17 @@ policies and the admin check). It is already applied to the live project.
 | --- | --- |
 | `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source |
 | `paper_progress` | `(user_id, paper_id)` rows — each student's Done marks |
+| `profiles` | One row per account: username + avatar URL |
+| `paper_reports` | Student-submitted problem notes (reason, details, status) |
 
 Security model:
 
 - `papers` — readable by everyone, writable only by `is_library_admin()`
 - `paper_progress` — each row is restricted to `auth.uid() = user_id`
+- `profiles` — readable by everyone (that is how usernames show), writable only by its
+  owner (`auth.uid() = id`); RLS is enabled on this table too
+- `paper_reports` — anyone may insert; only `is_library_admin()` may select, update or
+  delete
 - Guests who never sign in keep Done marks in `localStorage`; they are merged into the
   account on first sign-in.
 
@@ -199,5 +250,7 @@ Security model:
 
 ## Possible next steps
 
-Title editor (done), download counter, Drive API folder sync, "recently added" row,
-installable PWA, "Report a file" button.
+Answer keys (done), report a problem (done), shareable filtered lists (done). Still
+open: "recently added" row, year/shift filters, bookmarks, notes and difficulty ratings,
+self-reported timed practice, a small dashboard, installable PWA, Hindi UI, and admin
+bulk tools (link-health checks need a server-side job — Drive blocks browser CORS).

@@ -3,6 +3,7 @@ import { driveDownloadUrl, driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
 import type { Paper } from '../lib/types'
 import {
+  AlertIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
@@ -41,6 +42,9 @@ interface PaperCardProps {
   canMoveDown?: boolean
   onToggleDone: () => void
   onShare: () => void
+  onReport: () => void
+  /** True once this student has already flagged this paper from this device. */
+  reported?: boolean
   onEdit: () => void
   onDelete: () => void
 }
@@ -63,6 +67,8 @@ export function PaperCard({
   canMoveDown = false,
   onToggleDone,
   onShare,
+  onReport,
+  reported = false,
   onEdit,
   onDelete,
 }: PaperCardProps) {
@@ -222,6 +228,21 @@ export function PaperCard({
             )}
             <span aria-hidden>·</span>
             <span>Added {formatDate(paper.created_at)}</span>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              onClick={onReport}
+              title="Tell the admin something is wrong with this paper"
+              className={classNames(
+                'inline-flex items-center gap-1 rounded font-semibold underline decoration-dotted underline-offset-2 transition',
+                reported
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-ink-400 hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300',
+              )}
+            >
+              <AlertIcon className="h-3 w-3" />
+              {reported ? 'Reported' : 'Report a problem'}
+            </button>
           </p>
         </div>
       </div>
