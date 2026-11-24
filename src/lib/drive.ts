@@ -53,11 +53,28 @@ export const driveViewUrl = (fileId: string) =>
 export const driveDownloadUrl = (fileId: string) =>
   `https://drive.google.com/uc?export=download&id=${fileId}`
 
-/** `Title | link` (title optional). */
-export function splitTitleAndLink(line: string): { title: string; link: string } {
-  const pipe = line.indexOf('|')
-  if (pipe === -1) return { title: '', link: line.trim() }
-  return { title: line.slice(0, pipe).trim(), link: line.slice(pipe + 1).trim() }
+/**
+ * One pasted line, up to three parts separated by pipes:
+ *
+ *   link
+ *   Title | link
+ *   Title | paper link | answer key link
+ *
+ * Both links are optional in practice — the panel validates whichever are given.
+ */
+export function splitPaperLine(line: string): {
+  title: string
+  link: string
+  answerLink: string
+} {
+  const parts = line.split('|').map((part) => part.trim())
+  if (parts.length === 1) return { title: '', link: parts[0], answerLink: '' }
+  if (parts.length === 2) return { title: parts[0], link: parts[1], answerLink: '' }
+  return {
+    title: parts[0],
+    link: parts[1],
+    answerLink: parts.slice(2).join('|').trim(),
+  }
 }
 
 export function parseTagInput(raw: string): string[] {

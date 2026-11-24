@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { parseDriveLink, parseTagInput, splitTitleAndLink } from '../lib/drive'
+import { parseDriveLink, parseTagInput, splitPaperLine } from '../lib/drive'
 import type { NewPaper, Paper, SourceType } from '../lib/types'
 import { Modal } from './Modal'
-import { AlertIcon, FileIcon, LoaderIcon, PlusIcon, XIcon } from './Icons'
+import { AlertIcon, FileIcon, LinkIcon, LoaderIcon, PlusIcon, XIcon } from './Icons'
 
 interface AddResult {
   inserted: number
@@ -30,6 +30,10 @@ interface ParsedRow {
   title: string
   link: string
   fileId: string | null
+  /** Optional third pipe part: the answer key's Drive link. */
+  answerLink: string
+  answerFileId: string | null
+  answerError?: string
   error?: string
 }
 
@@ -45,6 +49,10 @@ export function AddPapersPanel({
 }: AddPapersPanelProps) {
   const [raw, setRaw] = useState('')
   const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>({})
+  /** Per-row answer-key links, keyed the same way as titleOverrides. */
+  const [keyOverrides, setKeyOverrides] = useState<Record<string, string>>({})
+  /** Rows where the admin tapped "Attach answer key". */
+  const [keyOpen, setKeyOpen] = useState<Record<string, boolean>>({})
   const [category, setCategory] = useState('MP Police Constable Previous Papers')
   const [tags, setTags] = useState('')
   const [year, setYear] = useState('')
@@ -102,19 +110,42 @@ export function AddPapersPanel({
       .map((line) => line.trim())
       .filter(Boolean)
       .map((line, index) => {
-        const { title, link } = splitTitleAndLink(line)
+        const { title, link, answerLink } = splitPaperLine(line)
         const { fileId, error: parseError } = parseDriveLink(link)
-        return { key: `${index}-${link}`, title, link, fileId, error: parseError }
+        const { fileId: answerFileId, error: answerError } = parseDriveLink(answerLink)
+        return {
+          key: `${index}-${link}`,
+          title,
+          link,
+          fileId,
+          answerLink,
+          answerFileId,
+          answerError: answerLink ? answerError : undefined,
+          error: parseError,
+        }
       })
   }, [raw])
 
-  const effectiveRows = rows.map((row) => ({
-    ...row,
-    title: (titleOverrides[row.key] ?? row.title).trim(),
-  }))
+  const effectiveRows = rows.map((row) => {
+    const answerLink = (keyOverrides[row.key] ?? row.answerLink).trim()
+    const parsedAnswer = answerLink ? parseDriveLink(answerLink) : { fileId: null }
+    return {
+      ...row,
+      title: (titleOverrides[row.key] ?? row.title).trim(),
+      answerLink,
+      answerFileId: parsedAnswer.fileId,
+      answerError:
+        answerLink && !parsedAnswer.fileId
+          ? ('error' in parsedAnswer ? parsedAnswer.error : undefined) ??
+            'Could not find a file id in this link.'
+          : undefined,
+    }
+  })
 
   const idCounts = effectiveRows.reduce<Record<string, number>>((acc, row) => {
-    if (row.fileId) acc[row.fileId] = (acc[row.fileId] ?? 0) + 1
+    for (const id of [row.fileId, row.answerFileId]) {
+      if (id) acc[id] = (acc[id] ?? 0) + 1
+    }
     return acc
   }, {})
 
@@ -124,6 +155,11 @@ export function AddPapersPanel({
     if (effectiveRows.some((row) => !row.title)) return 'Every paper needs a title.'
     if (effectiveRows.some((row) => row.fileId && idCounts[row.fileId] > 1))
       return 'The same Drive file appears twice.'
+    const badKey = effectiveRows.find((row) => row.answerLink && !row.answerFileId)
+    if (badKey)
+      return `The answer key link for “${badKey.title || 'this paper'}” is not a Google Drive file link.`
+    if (effectiveRows.some((row) => row.answerFileId && idCounts[row.answerFileId] > 1))
+      return 'An answer key is the same file as a question paper. Attach a different PDF.'
     if (!category.trim()) return 'Pick a folder name.'
     if (sourceType === 'official' && !/^https:\/\/\S+$/i.test(sourceUrl.trim()))
       return 'Official sources need an https:// link.'
@@ -142,25 +178,67 @@ export function AddPapersPanel({
       return
     }
 
-    const payload: NewPaper[] = effectiveRows.map((row) => ({
-      title: row.title.slice(0, 180),
-      drive_file_id: row.fileId as string,
-      category: category.trim().slice(0, 60),
-      tags: parseTagInput(tags),
-      source_type: sourceType,
-      source_url: sourceType === 'official' ? sourceUrl.trim() : null,
-      exam_year: year ? Number(year) : null,
-      exam_shift: shift ? Number(shift) : null,
-    }))
+    const folder = category.trim().slice(0, 60)
+    const sharedTags = parseTagInput(tags)
+    const payload: NewPaper[] = []
+    let answerKeyCount = 0
+
+    for (const row of effectiveRows) {
+      // An attached answer key becomes its own card titled "<paper> Solution",
+      // which is exactly what the automatic paper ↔ key linking looks for. Long
+      // titles give back 9 characters so that suffix still fits the 180 cap.
+      const title = row.title.slice(0, row.answerFileId ? 171 : 180)
+      // The key may already be in the library (uploaded earlier, or pasted in
+      // the same batch). Then it is linked, not uploaded a second time.
+      const existingKey = row.answerFileId
+        ? papers.find((paper) => paper.drive_file_id === row.answerFileId)
+        : undefined
+
+      const paper: NewPaper = {
+        title,
+        drive_file_id: row.fileId as string,
+        category: folder,
+        tags: sharedTags,
+        source_type: sourceType,
+        source_url: sourceType === 'official' ? sourceUrl.trim() : null,
+        exam_year: year ? Number(year) : null,
+        exam_shift: shift ? Number(shift) : null,
+        ...(existingKey ? { solution_paper_id: existingKey.id } : {}),
+      }
+      payload.push(paper)
+
+      if (row.answerFileId && !existingKey) {
+        answerKeyCount += 1
+        payload.push({
+          title: `${title} Solution`,
+          drive_file_id: row.answerFileId,
+          category: folder,
+          tags: [],
+          source_type: sourceType,
+          source_url: paper.source_url,
+          exam_year: paper.exam_year ?? null,
+          exam_shift: paper.exam_shift ?? null,
+        })
+      }
+    }
 
     setBusy(true)
     try {
       const result = await onCreate(payload)
       if (result.inserted > 0) {
-        onToast(
-          `${result.inserted} ${result.inserted === 1 ? 'paper' : 'papers'} added to the library.`,
-          'success',
-        )
+        const everyRowLanded = result.inserted === payload.length
+        const paperCount = everyRowLanded
+          ? payload.length - answerKeyCount
+          : result.inserted
+        const pieces = [
+          `${paperCount} ${paperCount === 1 ? 'paper' : 'papers'}`,
+        ]
+        if (everyRowLanded && answerKeyCount > 0) {
+          pieces.push(
+            `${answerKeyCount} ${answerKeyCount === 1 ? 'answer key' : 'answer keys'}`,
+          )
+        }
+        onToast(`${pieces.join(' and ')} added to the library.`, 'success')
       }
       if (result.failures.length) {
         const first = result.failures[0]
@@ -175,6 +253,8 @@ export function AddPapersPanel({
       if (result.inserted > 0) {
         setRaw('')
         setTitleOverrides({})
+        setKeyOverrides({})
+        setKeyOpen({})
         onClose()
       }
     } catch (caught) {
@@ -323,6 +403,8 @@ export function AddPapersPanel({
               onChange={(event) => {
                 setRaw(event.target.value)
                 setTitleOverrides({})
+                setKeyOverrides({})
+                setKeyOpen({})
               }}
               rows={4}
               spellCheck={false}
@@ -334,6 +416,14 @@ export function AddPapersPanel({
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
               In Google Drive: right-click the PDF → Share → “Anyone with the link” → Copy
               link. Folder links will not work.
+            </p>
+            <p className="mt-1 text-[11.5px] leading-relaxed text-emerald-700 dark:text-emerald-400">
+              Got the answer key too? Add it as a third part:{' '}
+              <span className="font-mono text-[11px]">
+                Title | paper link | answer key link
+              </span>{' '}
+              — or tap <span className="font-semibold">Attach answer key</span> under any
+              row below.
             </p>
           </div>
 
@@ -372,9 +462,17 @@ export function AddPapersPanel({
                         onClick={() => {
                           const remaining = effectiveRows
                             .filter((item) => item.key !== row.key)
-                            .map((item) => (item.title ? `${item.title} | ${item.link}` : item.link))
+                            .map((item) => {
+                              const parts = [item.title, item.link]
+                              if (item.answerLink) parts.push(item.answerLink)
+                              return item.title || item.answerLink
+                                ? parts.join(' | ')
+                                : item.link
+                            })
                           setRaw(remaining.join('\n'))
                           setTitleOverrides({})
+                          setKeyOverrides({})
+                          setKeyOpen({})
                         }}
                         className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
                       >
@@ -389,6 +487,66 @@ export function AddPapersPanel({
                     >
                       {row.error ?? (duplicate ? 'Duplicate file in this batch' : row.fileId)}
                     </p>
+
+                    {keyOpen[row.key] || row.answerLink ? (
+                      <div className="mt-1">
+                        <div className="flex items-center gap-1">
+                          <LinkIcon className="h-3 w-3 shrink-0 text-emerald-500" />
+                          <input
+                            value={row.answerLink}
+                            onChange={(event) =>
+                              setKeyOverrides((current) => ({
+                                ...current,
+                                [row.key]: event.target.value,
+                              }))
+                            }
+                            placeholder="Answer key Drive link (optional)"
+                            aria-label="Answer key Drive link"
+                            spellCheck={false}
+                            className={[
+                              'h-7 min-w-0 flex-1 rounded-lg border bg-white px-2 font-mono text-[10.5px] text-ink-800 placeholder:text-ink-400 focus:outline-none focus:ring-2 dark:bg-ink-800 dark:text-ink-100',
+                              row.answerError
+                                ? 'border-brand-300 focus:ring-brand-500/20 dark:border-brand-500/50'
+                                : 'border-emerald-200 focus:ring-emerald-500/20 dark:border-emerald-500/40',
+                            ].join(' ')}
+                          />
+                          <button
+                            type="button"
+                            aria-label="Remove answer key"
+                            onClick={() => {
+                              setKeyOverrides((current) => ({ ...current, [row.key]: '' }))
+                              setKeyOpen((current) => ({ ...current, [row.key]: false }))
+                            }}
+                            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
+                          >
+                            <XIcon className="h-3 w-3" />
+                          </button>
+                        </div>
+                        {row.answerError ? (
+                          <p className="mt-0.5 px-1 text-[10.5px] font-medium text-brand-600 dark:text-brand-300">
+                            {row.answerError}
+                          </p>
+                        ) : row.answerFileId ? (
+                          <p className="mt-0.5 px-1 text-[10.5px] font-medium text-emerald-700 dark:text-emerald-400">
+                            {papers.some(
+                              (paper) => paper.drive_file_id === row.answerFileId,
+                            )
+                              ? '✓ That key is already in the library — this paper will link to that card.'
+                              : `✓ Answer key attached — it becomes its own card, “${row.title} Solution”.`}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setKeyOpen((current) => ({ ...current, [row.key]: true }))
+                        }
+                        className="mt-1 inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-[10.5px] font-semibold text-ink-400 transition hover:bg-ink-100 hover:text-emerald-700 dark:hover:bg-ink-800 dark:hover:text-emerald-400"
+                      >
+                        <LinkIcon className="h-3 w-3" /> Attach answer key
+                      </button>
+                    )}
                   </div>
                 )
               })}

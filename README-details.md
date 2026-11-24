@@ -71,6 +71,8 @@ Notes:
 - **Automatic linking:** when a new PDF is titled `… Solution` and a paper with the same
   title (minus the word "Solution") exists, the link is created for you. All 15 existing
   pairs are already linked this way.
+- **Attach at upload time:** in *Add PDFs* you can paste the key as a third pipe part or
+  tap **Attach answer key** on a row — see [Adding papers](#adding-papers).
 - **Searching** `answer key` now finds the papers that have one; `question paper` finds
   the matching solutions.
 - **Deleting** either side is safe — `on delete set null` clears the link, so you never
@@ -205,11 +207,41 @@ sign out from inside the dialog if they get stuck.
    ```
 
 3. Give every row a title (titles are never read from Drive), choose the folder, add
-   tags like `Shift 1, 2023, Solutions`, pick the source, then **Add to library**.
+   tags like `Batta, Tables`, pick the source, then **Add to library**.
 4. Links become `drive.google.com/file/d/<id>/view` (Open) and
    `drive.google.com/uc?export=download&id=<id>` (Download).
 
 Folder links are rejected — only individual files open in the Drive viewer.
+
+### Attaching the answer key while you upload
+
+You no longer have to upload the paper and the solution separately and then link them.
+Two ways, both in the **Add PDFs** panel:
+
+**Paste it as a third part** — one line can carry both links:
+
+```
+MP Police Constable 12 Nov 2025 Shift 1 | https://drive.google.com/file/d/PAPER/view | https://drive.google.com/file/d/KEY/view
+```
+
+**Or tap “Attach answer key”** under any row in the preview list and paste the key link
+there. It turns green and tells you exactly what will happen.
+
+What happens on **Add to library**:
+
+- The paper is created as usual.
+- Its answer key becomes its own card — titled `<paper title> Solution`, in the same
+  folder, same year and shift, no tags — and the two are linked both ways, so the paper
+  shows the green **Answer key** pill and the key shows **Question paper**.
+- If that key PDF is **already in the library** (you uploaded it earlier), nothing is
+  duplicated: the new paper simply links to the existing card.
+- The toast counts both: *“1 paper and 1 answer key added to the library.”*
+- Move the generated card to your “Solutions” folder later with **Edit** if you keep
+  keys separate; the link follows the card, not the folder.
+
+Bad key links are caught before anything is saved: a folder link, a Google Docs link, or
+a key that is the same file as the question paper all block the upload with a message
+under that row.
 
 ## Arranging the order
 
