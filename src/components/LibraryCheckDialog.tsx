@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import { AlertIcon, CheckIcon, LinkIcon, PulseIcon, RefreshIcon, TrashIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames, formatDate } from '../lib/format'
@@ -43,6 +44,7 @@ export function LibraryCheckDialog({
   onEdit,
   onDelete,
 }: LibraryCheckDialogProps) {
+  const { t } = useI18n()
   const summary = librarySummary(papers)
   const groups = duplicateGroups(papers)
 
@@ -77,17 +79,17 @@ export function LibraryCheckDialog({
       open={open}
       onClose={onClose}
       wide
-      title="Library check"
-      description="Are the Drive links still working, and has anything slipped in twice?"
+      title={t('Library check')}
+      description={t('Are the Drive links still working, and has anything slipped in twice?')}
       icon={<PulseIcon className="h-4 w-4" />}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <Tile label="Papers" value={String(summary.total)} />
-          <Tile label="Folders" value={String(summary.folders)} />
-          <Tile label="With answer key" value={String(summary.withKey)} />
+          <Tile label={t('Papers')} value={String(summary.total)} />
+          <Tile label={t('Folders')} value={String(summary.folders)} />
+          <Tile label={t('With answer key')} value={String(summary.withKey)} />
           <Tile
-            label="No exam year"
+            label={t('No exam year')}
             value={String(summary.withoutYear)}
             tone={summary.withoutYear ? 'warn' : undefined}
           />
@@ -97,12 +99,12 @@ export function LibraryCheckDialog({
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-[13px] font-bold text-ink-900 dark:text-white">
-                <LinkIcon className="h-3.5 w-3.5 text-emerald-500" /> Link health
+                <LinkIcon className="h-3.5 w-3.5 text-emerald-500" /> {t('Link health')}
               </p>
               <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-500 dark:text-ink-400">
                 {health.lastChecked
-                  ? `Last checked ${formatDate(health.lastChecked)}.`
-                  : 'Checks every paper and answer key the way a student opening it would.'}
+                  ? t('Last checked {date}.', { date: formatDate(health.lastChecked) })
+                  : t('Checks every paper and answer key the way a student opening it would.')}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1.5">
@@ -112,7 +114,7 @@ export function LibraryCheckDialog({
                   onClick={onForget}
                   className="rounded-lg border border-ink-200 px-2 py-1 text-[11.5px] font-semibold text-ink-500 transition hover:bg-ink-50 dark:border-ink-700 dark:text-ink-400 dark:hover:bg-ink-800"
                 >
-                  Clear
+                  {t('Clear')}
                 </button>
               )}
               <button
@@ -122,7 +124,11 @@ export function LibraryCheckDialog({
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 text-[11.5px] font-bold text-white transition hover:bg-brand-700 disabled:opacity-60"
               >
                 <RefreshIcon className={classNames('h-3.5 w-3.5', health.checking && 'animate-spin')} />
-                {health.checking ? 'Checking…' : checked.length ? 'Recheck' : 'Check all links'}
+                {health.checking
+                  ? t('Checking…')
+                  : checked.length
+                    ? t('Recheck')
+                    : t('Check all links')}
               </button>
             </div>
           </div>
@@ -136,7 +142,10 @@ export function LibraryCheckDialog({
                 />
               </div>
               <p className="mt-1 text-[11px] text-ink-400 dark:text-ink-500">
-                {health.progress.done} of {health.progress.total} links checked…
+                {t('{done} of {total} links checked…', {
+                  done: health.progress.done,
+                  total: health.progress.total,
+                })}
               </p>
             </div>
           )}
@@ -158,7 +167,7 @@ export function LibraryCheckDialog({
                       statusTone[status],
                     )}
                   >
-                    {counts[status]} {statusLabel[status].toLowerCase()}
+                    {counts[status]} {t(statusLabel[status]).toLowerCase()}
                   </span>
                 ) : null,
               )}
@@ -180,19 +189,19 @@ export function LibraryCheckDialog({
                         statusTone[status],
                       )}
                     >
-                      {statusLabel[status]}
+                      {t(statusLabel[status])}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[12px] font-semibold text-ink-800 dark:text-ink-100">
                         {link.paper.title}
                       </span>
                       <span className="block truncate text-[10.5px] text-ink-400 dark:text-ink-500">
-                        {link.role === 'key' ? 'Answer key · ' : ''}
+                        {link.role === 'key' ? `${t('Answer key')} · ` : ''}
                         {status === 'missing'
-                          ? 'the file is gone or the link is wrong'
+                          ? t('the file is gone or the link is wrong')
                           : status === 'restricted'
-                            ? 'share it as “Anyone with the link”'
-                            : 'Drive did not answer — try again'}
+                            ? t('share it as “Anyone with the link”')
+                            : t('Drive did not answer — try again')}
                       </span>
                     </span>
                     <button
@@ -200,12 +209,12 @@ export function LibraryCheckDialog({
                       onClick={() => onEdit(link.paper)}
                       className="shrink-0 rounded-lg border border-ink-200 px-2 py-1 text-[11px] font-semibold text-ink-600 transition hover:bg-ink-50 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800"
                     >
-                      Edit
+                      {t('Edit')}
                     </button>
                     <button
                       type="button"
                       onClick={() => onDelete(link.paper)}
-                      aria-label={`Delete ${link.paper.title}`}
+                      aria-label={t('Delete {title}', { title: link.paper.title })}
                       className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
                     >
                       <TrashIcon className="h-3.5 w-3.5" />
@@ -218,24 +227,25 @@ export function LibraryCheckDialog({
 
           {checked.length > 0 && problems.length === 0 && !health.checking && (
             <p className="mt-2 flex items-center gap-1.5 rounded-xl bg-emerald-50 px-2.5 py-2 text-[12px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-              <CheckIcon className="h-3.5 w-3.5" /> Every checked link opens for a student.
+              <CheckIcon className="h-3.5 w-3.5" /> {t('Every checked link opens for a student.')}
             </p>
           )}
         </section>
 
         <section className="rounded-2xl border border-ink-200 p-3 dark:border-ink-700">
-          <p className="text-[13px] font-bold text-ink-900 dark:text-white">Duplicates</p>
+          <p className="text-[13px] font-bold text-ink-900 dark:text-white">{t('Duplicates')}</p>
           {groups.length === 0 ? (
             <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-500 dark:text-ink-400">
-              Nothing twice: every Drive file appears once, no two titles match, and no exam
-              slot is claimed by two cards.
+              {t(
+                'Nothing twice: every Drive file appears once, no two titles match, and no exam slot is claimed by two cards.',
+              )}
             </p>
           ) : (
             <div className="mt-2 space-y-2.5">
               {groups.map((group) => (
                 <div key={group.key} className="rounded-xl border border-amber-200 p-2 dark:border-amber-500/40">
                   <p className="flex items-start gap-1.5 px-0.5 text-[11.5px] font-semibold text-amber-800 dark:text-amber-300">
-                    <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {group.reason}
+                    <AlertIcon className="mt-px h-3.5 w-3.5 shrink-0" /> {t(group.reason)}
                   </p>
                   <ul className="mt-1.5 space-y-1">
                     {group.papers.map((paper) => (
@@ -248,7 +258,10 @@ export function LibraryCheckDialog({
                             {paper.title}
                           </span>
                           <span className="block truncate text-[10.5px] text-ink-400 dark:text-ink-500">
-                            {paper.category} · added {formatDate(paper.created_at)}
+                            {t('{folder} · added {date}', {
+                              folder: paper.category,
+                              date: formatDate(paper.created_at),
+                            })}
                           </span>
                         </span>
                         <button
@@ -256,12 +269,12 @@ export function LibraryCheckDialog({
                           onClick={() => onEdit(paper)}
                           className="shrink-0 rounded-lg border border-ink-200 px-2 py-1 text-[11px] font-semibold text-ink-600 transition hover:bg-ink-50 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800"
                         >
-                          Edit
+                          {t('Edit')}
                         </button>
                         <button
                           type="button"
                           onClick={() => onDelete(paper)}
-                          aria-label={`Delete ${paper.title}`}
+                          aria-label={t('Delete {title}', { title: paper.title })}
                           className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
                         >
                           <TrashIcon className="h-3.5 w-3.5" />
@@ -276,9 +289,9 @@ export function LibraryCheckDialog({
         </section>
 
         <p className="text-[11px] leading-relaxed text-ink-400 dark:text-ink-500">
-          The link checker asks Google Drive about each file from our own server, because a
-          browser is not allowed to read Drive directly. It never downloads a file — only
-          the first part of its preview page.
+          {t(
+            'The link checker asks Google Drive about each file from our own server, because a browser is not allowed to read Drive directly. It never downloads a file — only the first part of its preview page.',
+          )}
         </p>
       </div>
     </Modal>

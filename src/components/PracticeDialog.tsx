@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { ClockIcon, ExternalIcon, TrashIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames, formatClock, formatDate, formatDuration } from '../lib/format'
@@ -35,6 +36,7 @@ export function PracticeDialog({
   onRemoveAttempt,
   onSuccess,
 }: PracticeDialogProps) {
+  const { t } = useI18n()
   const [scoring, setScoring] = useState(false)
   const [score, setScore] = useState('')
   const [total, setTotal] = useState('100')
@@ -57,25 +59,25 @@ export function PracticeDialog({
     const totalValue = Number(total)
     const scoreValue = Number(score)
     if (!Number.isFinite(scoreValue) || scoreValue < 0) {
-      setError('Enter the marks you scored.')
+      setError(t('Enter the marks you scored.'))
       return
     }
     if (!Number.isFinite(totalValue) || totalValue < 1) {
-      setError('Enter the total marks.')
+      setError(t('Enter the total marks.'))
       return
     }
     if (scoreValue > totalValue) {
-      setError('The score cannot be more than the total.')
+      setError(t('The score cannot be more than the total.'))
       return
     }
     setBusy(true)
     setError(null)
     try {
       await onFinish(scoreValue, totalValue)
-      onSuccess(`Practice saved — ${scoreValue}/${totalValue}.`)
+      onSuccess(t('Practice saved — {score}/{total}.', { score: scoreValue, total: totalValue }))
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save that attempt.')
+      setError(caught instanceof Error ? caught.message : t('Could not save that attempt.'))
     } finally {
       setBusy(false)
     }
@@ -85,11 +87,13 @@ export function PracticeDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title={thisPaperRunning && !scoring ? 'Practice running' : 'Timed practice'}
+      title={thisPaperRunning && !scoring ? t('Practice running') : t('Timed practice')}
       description={
         scoring
-          ? 'Enter the marks you scored once you have checked your answers.'
-          : 'The timer runs while you solve the paper in Google Drive. Stop it when you finish and note your score — it is saved for you.'
+          ? t('Enter the marks you scored once you have checked your answers.')
+          : t(
+              'The timer runs while you solve the paper in Google Drive. Stop it when you finish and note your score — it is saved for you.',
+            )
       }
       icon={<ClockIcon className="h-4 w-4" />}
     >
@@ -103,7 +107,7 @@ export function PracticeDialog({
         <div className="space-y-3">
           <div className="rounded-2xl border border-brand-200 bg-brand-50/60 px-4 py-5 text-center dark:border-brand-500/40 dark:bg-brand-500/10">
             <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300">
-              Running
+              {t('Running')}
             </p>
             <p className="mt-1 font-mono text-[34px] font-bold leading-none tracking-tight text-ink-900 dark:text-white">
               {formatClock(elapsedMs)}
@@ -116,25 +120,25 @@ export function PracticeDialog({
               rel="noreferrer noopener"
               className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white text-[13px] font-semibold text-ink-700 transition hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
             >
-              <ExternalIcon className="h-4 w-4" /> Open paper
+              <ExternalIcon className="h-4 w-4" /> {t('Open paper')}
             </a>
             <button
               type="button"
               onClick={() => setScoring(true)}
               className="h-10 flex-1 rounded-xl bg-brand-600 text-[13px] font-semibold text-white transition hover:bg-brand-700"
             >
-              Finish &amp; enter score
+              {t('Finish & enter score')}
             </button>
           </div>
           <button
             type="button"
             onClick={() => {
               onCancelTimer()
-              onSuccess('Timer stopped — nothing was saved.')
+              onSuccess(t('Timer stopped — nothing was saved.'))
             }}
             className="w-full text-center text-[12px] font-semibold text-ink-400 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
           >
-            Cancel this practice
+            {t('Cancel this practice')}
           </button>
         </div>
       )}
@@ -144,7 +148,7 @@ export function PracticeDialog({
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-                Marks scored
+                {t('Marks scored')}
               </span>
               <input
                 type="number"
@@ -158,7 +162,7 @@ export function PracticeDialog({
             </label>
             <label className="block">
               <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-                Out of
+                {t('Out of')}
               </span>
               <input
                 type="number"
@@ -171,7 +175,8 @@ export function PracticeDialog({
             </label>
           </div>
           <p className="rounded-xl bg-ink-50 px-3 py-2 text-[11.5px] text-ink-500 dark:bg-ink-800/60 dark:text-ink-400">
-            Time taken: <span className="font-semibold">{formatClock(elapsedMs)}</span>
+            {t('Time taken:')}{' '}
+            <span className="font-semibold">{formatClock(elapsedMs)}</span>
           </p>
           {error && (
             <p className="rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
@@ -185,14 +190,14 @@ export function PracticeDialog({
               disabled={busy}
               className="h-11 rounded-xl border border-ink-200 px-3 text-[13px] font-semibold text-ink-600 dark:border-ink-700 dark:text-ink-300"
             >
-              Back
+              {t('Back')}
             </button>
             <button
               type="submit"
               disabled={busy}
               className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
             >
-              {busy ? 'Saving…' : 'Save attempt'}
+              {busy ? t('Saving…') : t('Save attempt')}
             </button>
           </div>
         </form>
@@ -203,24 +208,26 @@ export function PracticeDialog({
           {otherPaperRunning ? (
             <div className="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] font-medium text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
               <p>
-                A timer is already running on “{runningTitle ?? 'another paper'}”. Finish or
-                cancel that one first.
+                {t('A timer is already running on “{title}”. Finish or cancel that one first.', {
+                  title: runningTitle ?? t('another paper'),
+                })}
               </p>
               <button
                 type="button"
                 onClick={() => {
                   onCancelTimer()
-                  onSuccess('Timer stopped — nothing was saved.')
+                  onSuccess(t('Timer stopped — nothing was saved.'))
                 }}
                 className="rounded-lg border border-amber-300 px-2 py-1 text-[11.5px] font-semibold dark:border-amber-500/40"
               >
-                Stop that timer
+                {t('Stop that timer')}
               </button>
             </div>
           ) : (
             <p className="text-[13px] leading-relaxed text-ink-600 dark:text-ink-300">
-              Start the clock, open the paper in Drive, solve it, then come back here and
-              enter your score. The timer keeps running while you are away.
+              {t(
+                'Start the clock, open the paper in Drive, solve it, then come back here and enter your score. The timer keeps running while you are away.',
+              )}
             </p>
           )}
 
@@ -234,7 +241,7 @@ export function PracticeDialog({
               }}
               className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
             >
-              Start &amp; open paper
+              {t('Start & open paper')}
             </button>
             <a
               href={paper ? driveViewUrl(paper.drive_file_id) : undefined}
@@ -242,7 +249,7 @@ export function PracticeDialog({
               rel="noreferrer noopener"
               className="inline-flex h-11 items-center justify-center rounded-xl border border-ink-200 px-3 text-[13px] font-semibold text-ink-700 dark:border-ink-700 dark:text-ink-200"
             >
-              Open only
+              {t('Open only')}
             </a>
           </div>
         </div>
@@ -251,7 +258,7 @@ export function PracticeDialog({
       {attempts.length > 0 && (
         <div className="mt-4 border-t border-ink-100 pt-3 dark:border-ink-800">
           <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-400 dark:text-ink-500">
-            Previous attempts
+            {t('Previous attempts')}
           </p>
           <ul className="space-y-1.5">
             {attempts.slice(0, 5).map((attempt) => {
@@ -283,7 +290,7 @@ export function PracticeDialog({
                   <button
                     type="button"
                     onClick={() => onRemoveAttempt(attempt.id)}
-                    aria-label="Remove this attempt"
+                    aria-label={t('Remove this attempt')}
                     className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-ink-400 transition hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-500/15"
                   >
                     <TrashIcon className="h-3.5 w-3.5" />
@@ -293,8 +300,10 @@ export function PracticeDialog({
             })}
           </ul>
           <p className="mt-1.5 text-[11px] text-ink-400 dark:text-ink-500">
-            Best {Math.max(...attempts.map((a) => a.score))} of{' '}
-            {formatDuration(attempts.reduce((sum, a) => sum + a.seconds, 0))} practised.
+            {t('Best {score} of {time} practised.', {
+              score: Math.max(...attempts.map((a) => a.score)),
+              time: formatDuration(attempts.reduce((sum, a) => sum + a.seconds, 0)),
+            })}
           </p>
         </div>
       )}

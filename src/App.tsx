@@ -34,6 +34,7 @@ import { ReportsDialog } from './components/ReportsDialog'
 import { ResetPasswordDialog } from './components/ResetPasswordDialog'
 import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
+import { useI18n } from './hooks/useI18n'
 import { healthTargets, useLinkHealth } from './hooks/useLinkHealth'
 import { usePapers } from './hooks/usePapers'
 import { useNotes } from './hooks/useNotes'
@@ -119,6 +120,7 @@ const readReported = (): string[] => {
 export default function App() {
   const { isDark, toggle } = useTheme()
   const { toasts, push, dismiss } = useToasts()
+  const { t } = useI18n()
   const auth = useAuth()
   const {
     papers,
@@ -787,7 +789,9 @@ export default function App() {
     try {
       const count = await deleteMany(ids)
       push(
-        `${count} ${count === 1 ? 'paper' : 'papers'} removed from the library.`,
+        t(count === 1 ? '{count} paper removed from the library.' : '{count} papers removed from the library.', {
+          count,
+        }),
         'success',
       )
       setSelected(new Set())
@@ -863,13 +867,15 @@ export default function App() {
 
         {error && (
           <div className="mt-4 flex items-start gap-2 rounded-2xl border border-brand-200 bg-brand-50 px-3.5 py-3 text-[12.5px] font-medium text-brand-700 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300">
-            <span className="flex-1">Could not load the library: {error}</span>
+            <span className="flex-1">
+              {t('Could not load the library: {error}', { error: error ?? '' })}
+            </span>
             <button
               type="button"
               onClick={() => void reload()}
               className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-brand-300 px-2 py-1 text-[11.5px] font-semibold dark:border-brand-500/40"
             >
-              <RefreshIcon className="h-3 w-3" /> Retry
+              <RefreshIcon className="h-3 w-3" /> {t('Retry')}
             </button>
           </div>
         )}
@@ -901,30 +907,31 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => void copyViewLink()}
-                title="Copy a link that opens this exact list"
-                aria-label="Copy a link to this filtered list"
+                title={t('Copy a link that opens this exact list')}
+                aria-label={t('Copy a link to this filtered list')}
                 className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50 px-2.5 text-[12px] font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 active:scale-[0.98] dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300 dark:hover:bg-brand-500/20"
               >
                 <CopyIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">Copy link</span>
+                <span className="hidden sm:inline">{t('Copy link')}</span>
               </button>
             )}
             {progress.mode === 'device' && papers.length > 0 && (
               <button
                 type="button"
                 onClick={() => setAuthOpen(true)}
-                title="Progress is saved in this browser only"
+                title={t('Progress is saved in this browser only')}
                 className="hidden h-9 items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 text-[12px] font-semibold text-ink-500 transition hover:text-brand-600 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400 dark:hover:text-brand-300 sm:flex"
               >
-                <DeviceIcon className="h-4 w-4" /> This device
+                <DeviceIcon className="h-4 w-4" /> {t('This device')}
               </button>
             )}
           </div>
           {auth.isAdmin && papers.length > 1 && !loading && !selecting && (
             <p className="flex items-center gap-1.5 text-[11.5px] font-medium text-ink-400 dark:text-ink-500">
               <GripIcon className="h-3.5 w-3.5 shrink-0" />
-              Reorder: hold the ⠿ grip and drag a card, or tap ↑ ↓ on it. The
-              order you set is what every student sees.
+              {t(
+                'Reorder: hold the ⠿ grip and drag a card, or tap ↑ ↓ on it. The order you set is what every student sees.',
+              )}
             </p>
           )}
           {auth.isAdmin && papers.length > 0 && !loading && !selecting && (
@@ -937,14 +944,14 @@ export default function App() {
                 }}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2.5 text-[11.5px] font-semibold text-ink-600 transition hover:border-ink-300 hover:text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300 dark:hover:text-white"
               >
-                <LayersIcon className="h-3.5 w-3.5" /> Bulk edit
+                <LayersIcon className="h-3.5 w-3.5" /> {t('Bulk edit')}
               </button>
               <button
                 type="button"
                 onClick={openCheck}
                 className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-ink-200 bg-white px-2.5 text-[11.5px] font-semibold text-ink-600 transition hover:border-ink-300 hover:text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300 dark:hover:text-white"
               >
-                <PulseIcon className="h-3.5 w-3.5" /> Link check
+                <PulseIcon className="h-3.5 w-3.5" /> {t('Link check')}
                 {health.results.size > 0 && (
                   <span
                     className={[
@@ -967,7 +974,7 @@ export default function App() {
               className="flex w-full items-center gap-1.5 text-left text-[11.5px] font-medium text-ink-400 sm:hidden dark:text-ink-500"
             >
               <DeviceIcon className="h-3.5 w-3.5" />
-              Progress saved on this device — tap to sync with an account.
+              {t('Progress saved on this device — tap to sync with an account.')}
             </button>
           )}
         </div>
@@ -1038,9 +1045,17 @@ export default function App() {
 
         {!loading && !auth.isAdmin && papers.length > 0 && (
           <p className="mt-5 text-center text-[11.5px] text-ink-400 dark:text-ink-500">
-            {papers.length} {papers.length === 1 ? 'paper' : 'papers'} in{' '}
-            {categories.length} {categories.length === 1 ? 'folder' : 'folders'} ·{' '}
-            {filterCounts.done} done by you
+            {t('{papers} in {folders} · {done} done by you', {
+              papers: t(
+                papers.length === 1 ? 'one paper' : '{count} papers',
+                { count: papers.length },
+              ),
+              folders: t(
+                categories.length === 1 ? 'one folder' : '{count} folders',
+                { count: categories.length },
+              ),
+              done: filterCounts.done,
+            })}
           </p>
         )}
 
@@ -1051,7 +1066,7 @@ export default function App() {
         <button
           type="button"
           onClick={openAdd}
-          aria-label="Add PDFs"
+          aria-label={t('Add PDFs')}
           className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-fab transition hover:bg-brand-700 active:scale-95 sm:hidden"
         >
           <PlusIcon className="h-6 w-6" />
@@ -1098,8 +1113,13 @@ export default function App() {
 
       <ConfirmDialog
         open={bulkDeleteOpen}
-        title={`Delete ${selected.size} ${selected.size === 1 ? 'paper' : 'papers'}?`}
-        message={`They will be removed from the library for everyone. Your Drive files are not touched.`}
+        title={t(
+          selected.size === 1 ? 'Delete {count} paper?' : 'Delete {count} papers?',
+          { count: selected.size },
+        )}
+        message={t(
+          'They will be removed from the library for everyone. Your Drive files are not touched.',
+        )}
         onCancel={() => setBulkDeleteOpen(false)}
         onConfirm={confirmBulkDelete}
       />
@@ -1155,8 +1175,11 @@ export default function App() {
 
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete this paper?"
-        message={`“${deleteTarget?.title ?? ''}” will be removed from the library for everyone. Your Drive file is not touched.`}
+        title={t('Delete this paper?')}
+        message={t(
+          '“{title}” will be removed from the library for everyone. Your Drive file is not touched.',
+          { title: deleteTarget?.title ?? '' },
+        )}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
       />
@@ -1203,7 +1226,7 @@ export default function App() {
             }}
             className="rounded-full bg-brand-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-700"
           >
-            Finish
+            {t('Finish')}
           </button>
         </div>
       )}

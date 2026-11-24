@@ -24,6 +24,8 @@ https://mppolicepyqs.vercel.app
   hard rating, shown as a coloured chip on the card
 - **Install it on the phone**: it opens full screen like an app, and the last library
   listing stays readable when the network drops
+- **English / हिंदी** switch in the header: the whole page — headings, filters, cards,
+  dialogs, notices, footer — turns Hindi in one tap, and the choice is remembered
 - Progress bar for the visitor's own Done marks
 - Dark mode follows the phone setting (with a manual toggle)
 
@@ -143,6 +145,41 @@ confuse the next deploy). Use `npm run build && npm run preview` to try install 
 Supabase, so offline they fall back to the device copy until the network returns (nothing is
 lost — the account rows are untouched). A PDF that a student has open in Drive keeps working
 only as far as Drive itself does. Clearing site data removes the saved list.
+
+## Language — English and Hindi
+
+The **EN / हिं** pill sits in the header next to the dark-mode button. It flips the whole
+interface at once: the hero, filters, cards, dialogs, toasts, install card, offline bar and
+footer. Filters, Done marks, notes and a running practice timer are untouched — the list is
+not reloaded, only re-labelled.
+
+**How it works.** `src/lib/i18n.ts` holds one Hindi dictionary, and the English sentence
+*is* the key:
+
+```ts
+t('Open')                                   // → "खोलें"
+t('{done} of {total} done', { done, total }) // → "22 में से 7 पूरे"
+```
+
+A sentence with no Hindi entry simply stays English, so a screen can never show a raw key
+or a blank label — and half-translated pages degrade to English, not to breakage.
+`src/hooks/useI18n.tsx` provides `useI18n()` (and wraps the app in `src/main.tsx`).
+
+**The remembered choice.** It is stored in `localStorage` under `pyq:lang:v1`. A visitor
+who has never chosen gets Hindi when the phone's own language starts with `hi`, English
+otherwise. `document.documentElement.lang` follows the switch for screen readers.
+
+**Devanagari.** The Google Fonts request in `index.html` adds *Noto Sans Devanagari*, and
+the Tailwind font stack (`fontFamily.sans`) lists it straight after Inter, so Hindi text
+keeps the same weight and rhythm as the English beside it.
+
+**Keeping it complete.** `npm run check:i18n` walks `src/`, collects every `t('…')` string
+and lists any that have no Hindi entry yet. It is the quickest way to spot a new button
+that was written in English only.
+
+**What stays English.** Paper titles, folder names and tags are the admin's own data, so
+they are shown exactly as typed. Messages that come back from Supabase (a wrong password,
+for example) are shown as the server wrote them.
 
 ## Practice and notes
 

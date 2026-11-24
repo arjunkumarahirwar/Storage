@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import type { ToastMessage } from '../lib/types'
 import { AlertIcon, CheckIcon, XIcon } from './Icons'
 
@@ -7,6 +8,7 @@ interface ToastsProps {
 }
 
 export function Toasts({ toasts, onDismiss }: ToastsProps) {
+  const { t } = useI18n()
   if (!toasts.length) return null
 
   return (
@@ -33,11 +35,11 @@ export function Toasts({ toasts, onDismiss }: ToastsProps) {
               <span className="block h-4 w-4 rounded-full bg-ink-300 dark:bg-ink-600" />
             )}
           </span>
-          <p className="flex-1 leading-snug">{toast.text}</p>
+          <p className="flex-1 leading-snug">{t(toast.text)}</p>
           <button
             type="button"
             onClick={() => onDismiss(toast.id)}
-            aria-label="Dismiss"
+            aria-label={t('Dismiss')}
             className="shrink-0 rounded-full p-0.5 text-ink-400 transition hover:text-ink-700 dark:hover:text-white"
           >
             <XIcon className="h-3.5 w-3.5" />

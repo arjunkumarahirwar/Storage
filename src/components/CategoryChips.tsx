@@ -1,3 +1,5 @@
+import { useI18n } from '../hooks/useI18n'
+
 interface CategoryChipsProps {
   categories: { name: string; count: number }[]
   total: number
@@ -8,6 +10,7 @@ interface CategoryChipsProps {
 const ALL = 'All'
 
 export function CategoryChips({ categories, total, active, onChange }: CategoryChipsProps) {
+  const { t } = useI18n()
   const chips = [{ name: ALL, count: total }, ...categories]
 
   return (
@@ -28,7 +31,9 @@ export function CategoryChips({ categories, total, active, onChange }: CategoryC
                   : 'border-ink-200 bg-white text-ink-600 hover:border-ink-300 hover:text-ink-900 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300 dark:hover:border-ink-600 dark:hover:text-white',
               ].join(' ')}
             >
-              <span className="max-w-[190px] truncate">{chip.name}</span>
+              <span className="max-w-[190px] truncate">
+                {chip.name === ALL ? t('All') : chip.name}
+              </span>
               <span
                 className={[
                   'rounded-full px-1.5 py-px text-[11px] font-bold',

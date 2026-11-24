@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { NoteIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames } from '../lib/format'
@@ -22,6 +23,7 @@ export function NotesDialog({
   onSave,
   onSuccess,
 }: NotesDialogProps) {
+  const { t } = useI18n()
   const [note, setNote] = useState('')
   const [difficulty, setDifficulty] = useState<Difficulty | null>(null)
   const [busy, setBusy] = useState(false)
@@ -41,10 +43,12 @@ export function NotesDialog({
     setError(null)
     try {
       await onSave(paper.id, { note, difficulty })
-      onSuccess(!note.trim() && !difficulty ? 'Note cleared.' : 'Saved — only you can see this.')
+      onSuccess(
+        t(!note.trim() && !difficulty ? 'Note cleared.' : 'Saved — only you can see this.'),
+      )
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save the note.')
+      setError(caught instanceof Error ? caught.message : t('Could not save the note.'))
     } finally {
       setBusy(false)
     }
@@ -56,10 +60,10 @@ export function NotesDialog({
     setError(null)
     try {
       await onSave(paper.id, { note: '', difficulty: null })
-      onSuccess('Note cleared.')
+      onSuccess(t('Note cleared.'))
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not clear the note.')
+      setError(caught instanceof Error ? caught.message : t('Could not clear the note.'))
     } finally {
       setBusy(false)
     }
@@ -69,8 +73,8 @@ export function NotesDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title="Your notes"
-      description="Private to you — a reminder of what to revise, and how hard this paper felt."
+      title={t('Your notes')}
+      description={t('Private to you — a reminder of what to revise, and how hard this paper felt.')}
       icon={<NoteIcon className="h-4 w-4" />}
     >
       <form onSubmit={save} className="space-y-3">
@@ -82,7 +86,7 @@ export function NotesDialog({
 
         <div>
           <p className="mb-1 text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            How did it feel?
+            {t('How did it feel?')}
           </p>
           <div className="grid grid-cols-3 gap-1.5">
             {DIFFICULTIES.map((option) => {
@@ -104,9 +108,9 @@ export function NotesDialog({
                       : 'border-ink-200 bg-white text-ink-500 hover:border-ink-300 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400',
                   )}
                 >
-                  <span className="block text-[13px] font-semibold">{option.label}</span>
+                  <span className="block text-[13px] font-semibold">{t(option.label)}</span>
                   <span className="mt-0.5 block text-[10.5px] leading-tight opacity-80">
-                    {option.hint}
+                    {t(option.hint)}
                   </span>
                 </button>
               )
@@ -116,14 +120,14 @@ export function NotesDialog({
 
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            Note
+            {t('Note')}
           </span>
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value.slice(0, 2000))}
             rows={5}
             maxLength={2000}
-            placeholder="Sectional cut-offs, silly mistakes, topics to revise…"
+            placeholder={t('Sectional cut-offs, silly mistakes, topics to revise…')}
             className="w-full resize-none rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13.5px] leading-relaxed text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 dark:border-ink-700 dark:bg-ink-800 dark:text-white dark:placeholder:text-ink-500"
           />
           <span className="mt-0.5 block text-right text-[10.5px] text-ink-400 dark:text-ink-500">
@@ -145,7 +149,7 @@ export function NotesDialog({
               disabled={busy}
               className="h-11 rounded-xl border border-ink-200 px-3 text-[13px] font-semibold text-ink-600 transition hover:bg-ink-50 disabled:opacity-60 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800"
             >
-              Clear
+              {t('Clear')}
             </button>
           )}
           <button
@@ -153,7 +157,7 @@ export function NotesDialog({
             disabled={busy}
             className="h-11 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
-            {busy ? 'Saving…' : 'Save note'}
+            {busy ? t('Saving…') : t('Save note')}
           </button>
         </div>
       </form>

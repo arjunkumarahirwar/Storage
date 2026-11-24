@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { Modal } from './Modal'
 import { AlertIcon, LoaderIcon, LockIcon } from './Icons'
 
@@ -24,6 +25,7 @@ export function AuthDialog({
   onPasswordReset,
   onSuccess,
 }: AuthDialogProps) {
+  const { t } = useI18n()
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -48,30 +50,34 @@ export function AuthDialog({
     setError(null)
     setNotice(null)
     if (!email.trim()) {
-      setError('Enter your email address.')
+      setError(t('Enter your email address.'))
       return
     }
     if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
+      setError(t('Password must be at least 6 characters.'))
       return
     }
     setBusy('password')
     try {
       if (mode === 'signin') {
         await onSignIn(email, password)
-        onSuccess('Signed in — welcome back.')
+        onSuccess(t('Signed in — welcome back.'))
         close()
       } else {
         const { needsEmailConfirm } = await onSignUp(email, password)
         if (needsEmailConfirm) {
-          setNotice('Account created. Check your inbox to confirm your email, then sign in.')
+          setNotice(
+            t('Account created. Check your inbox to confirm your email, then sign in.'),
+          )
         } else {
-          onSuccess('Account created — you are signed in.')
+          onSuccess(t('Account created — you are signed in.'))
           close()
         }
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Something went wrong. Try again.')
+      setError(
+        caught instanceof Error ? caught.message : t('Something went wrong. Try again.'),
+      )
     } finally {
       setBusy(null)
     }
@@ -81,17 +87,22 @@ export function AuthDialog({
     setError(null)
     setNotice(null)
     if (!email.trim()) {
-      setError('Enter your email address first.')
+      setError(t('Enter your email address first.'))
       return
     }
     setBusy('reset')
     try {
       await onPasswordReset(email)
       setNotice(
-        `If ${email.trim()} has an account, a reset link is on its way. Open it on this device to choose a new password.`,
+        t(
+          'If {email} has an account, a reset link is on its way. Open it on this device to choose a new password.',
+          { email: email.trim() },
+        ),
       )
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not send the reset link.')
+      setError(
+        caught instanceof Error ? caught.message : t('Could not send the reset link.'),
+      )
     } finally {
       setBusy(null)
     }
@@ -101,15 +112,19 @@ export function AuthDialog({
     setError(null)
     setNotice(null)
     if (!email.trim()) {
-      setError('Enter your email address first.')
+      setError(t('Enter your email address first.'))
       return
     }
     setBusy('magic')
     try {
       await onMagicLink(email)
-      setNotice(`Sign-in link sent to ${email.trim()}. Open it on this device to finish signing in.`)
+      setNotice(
+        t('Sign-in link sent to {email}. Open it on this device to finish signing in.', {
+          email: email.trim(),
+        }),
+      )
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not send the link.')
+      setError(caught instanceof Error ? caught.message : t('Could not send the link.'))
     } finally {
       setBusy(null)
     }
@@ -119,8 +134,10 @@ export function AuthDialog({
     <Modal
       open={open}
       onClose={close}
-      title={mode === 'signin' ? 'Sign in' : 'Create an account'}
-      description="Students can track progress without an account. Sign in to keep your Done marks on every device — or as the library admin, to add and delete papers."
+      title={mode === 'signin' ? t('Sign in') : t('Create an account')}
+      description={t(
+        'Students can track progress without an account. Sign in to keep your Done marks on every device — or as the library admin, to add and delete papers.',
+      )}
       icon={<LockIcon className="h-4 w-4" />}
     >
       <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-ink-100 p-1 dark:bg-ink-800">
@@ -140,7 +157,7 @@ export function AuthDialog({
                 : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-100',
             ].join(' ')}
           >
-            {value === 'signin' ? 'Sign in' : 'New account'}
+            {value === 'signin' ? t('Sign in') : t('New account')}
           </button>
         ))}
       </div>
@@ -148,7 +165,7 @@ export function AuthDialog({
       <form onSubmit={withPassword} className="space-y-2.5">
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            Email
+            {t('Email')}
           </span>
           <input
             type="email"
@@ -156,13 +173,13 @@ export function AuthDialog({
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="you@example.com"
+            placeholder={t('you@example.com')}
             className={inputClass}
           />
         </label>
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            Password
+            {t('Password')}
           </span>
           <input
             type="password"
@@ -171,7 +188,7 @@ export function AuthDialog({
             minLength={6}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="At least 6 characters"
+            placeholder={t('At least 6 characters')}
             className={inputClass}
           />
         </label>
@@ -193,7 +210,7 @@ export function AuthDialog({
           className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
         >
           {busy === 'password' && <LoaderIcon className="h-4 w-4" />}
-          {mode === 'signin' ? 'Sign in' : 'Create account'}
+          {mode === 'signin' ? t('Sign in') : t('Create account')}
         </button>
 
         {mode === 'signin' && (
@@ -203,13 +220,13 @@ export function AuthDialog({
             disabled={busy !== null}
             className="w-full pt-0.5 text-center text-[12px] font-semibold text-ink-500 underline decoration-ink-300 decoration-dotted underline-offset-2 transition hover:text-brand-600 disabled:opacity-60 dark:text-ink-400 dark:hover:text-brand-300"
           >
-            {busy === 'reset' ? 'Sending reset link…' : 'Forgot your password?'}
+            {busy === 'reset' ? t('Sending reset link…') : t('Forgot your password?')}
           </button>
         )}
       </form>
 
       <div className="my-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
-        <span className="h-px flex-1 bg-ink-100 dark:bg-ink-800" /> or
+        <span className="h-px flex-1 bg-ink-100 dark:bg-ink-800" /> {t('or')}
         <span className="h-px flex-1 bg-ink-100 dark:bg-ink-800" />
       </div>
 
@@ -220,12 +237,13 @@ export function AuthDialog({
         className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white text-[13px] font-semibold text-ink-700 transition hover:bg-ink-50 disabled:opacity-60 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
       >
         {busy === 'magic' && <LoaderIcon className="h-4 w-4" />}
-        Email me a sign-in link
+        {t('Email me a sign-in link')}
       </button>
 
       <p className="mt-3 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
-        Only the library administrator’s email can add or delete papers. Progress marks are
-        private to each account.
+        {t(
+          'Only the library administrator’s email can add or delete papers. Progress marks are private to each account.',
+        )}
       </p>
     </Modal>
   )

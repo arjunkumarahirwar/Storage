@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { XIcon } from './Icons'
 
 interface ModalProps {
@@ -23,6 +24,8 @@ export function Modal({
   wide,
   dismissible = true,
 }: ModalProps) {
+  const { t } = useI18n()
+
   useEffect(() => {
     if (!open) return
     const onKeyDown = (event: KeyboardEvent) => {
@@ -73,7 +76,7 @@ export function Modal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('Close')}
               className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-400 transition hover:bg-ink-100 hover:text-ink-700 dark:hover:bg-ink-800 dark:hover:text-white"
             >
               <XIcon className="h-4 w-4" />

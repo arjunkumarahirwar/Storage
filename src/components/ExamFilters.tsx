@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import { classNames } from '../lib/format'
 
 interface ExamFiltersProps {
@@ -51,6 +52,7 @@ export function ExamFilters({
   onYear,
   onShift,
 }: ExamFiltersProps) {
+  const { t } = useI18n()
   const showYears = years.length > 1 || year !== null
   const showShifts = shifts.length > 1 || shift !== null
   if (!showYears && !showShifts) return null
@@ -60,17 +62,17 @@ export function ExamFilters({
       {showYears && (
         <div className="flex items-center gap-1">
           <span className="mr-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-400 dark:text-ink-500">
-            Year
+            {t('Year')}
           </span>
-          <Chip active={year === null} onClick={() => onYear(null)} label="All years">
-            All
+          <Chip active={year === null} onClick={() => onYear(null)} label={t('All years')}>
+            {t('All')}
           </Chip>
           {years.map((value) => (
             <Chip
               key={value}
               active={year === value}
               onClick={() => onYear(year === value ? null : value)}
-              label={`Only ${value} papers`}
+              label={t('Only {year} papers', { year: value })}
             >
               {value}
             </Chip>
@@ -81,17 +83,17 @@ export function ExamFilters({
       {showShifts && (
         <div className="flex items-center gap-1">
           <span className="mr-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-400 dark:text-ink-500">
-            Shift
+            {t('Shift')}
           </span>
-          <Chip active={shift === null} onClick={() => onShift(null)} label="Every shift">
-            Any
+          <Chip active={shift === null} onClick={() => onShift(null)} label={t('Every shift')}>
+            {t('Any')}
           </Chip>
           {shifts.map((value) => (
             <Chip
               key={value}
               active={shift === value}
               onClick={() => onShift(shift === value ? null : value)}
-              label={`Only shift ${value} papers`}
+              label={t('Only shift {shift} papers', { shift: value })}
             >
               {value}
             </Chip>

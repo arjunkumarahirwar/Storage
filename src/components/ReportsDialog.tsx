@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import { CheckIcon, ExternalIcon, FileIcon, PencilIcon, RefreshIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames, formatDate } from '../lib/format'
@@ -34,6 +35,7 @@ export function ReportsDialog({
   paperFor,
   onEditPaper,
 }: ReportsDialogProps) {
+  const { t } = useI18n()
   const openReports = reports.filter((report) => report.status === 'open')
   const closed = reports.filter((report) => report.status !== 'open')
 
@@ -61,7 +63,7 @@ export function ReportsDialog({
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300',
             )}
           >
-            {report.status === 'open' ? reportReasonLabel(report.reason) : 'Resolved'}
+            {report.status === 'open' ? t(reportReasonLabel(report.reason)) : t('Resolved')}
           </span>
         </div>
 
@@ -72,14 +74,14 @@ export function ReportsDialog({
         )}
 
         <p className="mt-1.5 flex flex-wrap items-center gap-1 text-[11px] text-ink-400 dark:text-ink-500">
-          <span>Reported {formatDate(report.created_at)}</span>
+          <span>{t('Reported {date}', { date: formatDate(report.created_at) })}</span>
           <span aria-hidden>·</span>
-          <span>{report.reporter_id ? 'Signed-in student' : 'Guest'}</span>
+          <span>{report.reporter_id ? t('Signed-in student') : t('Guest')}</span>
           {!paper && (
             <>
               <span aria-hidden>·</span>
               <span className="font-semibold text-brand-600 dark:text-brand-400">
-                no longer in the library
+                {t('no longer in the library')}
               </span>
             </>
           )}
@@ -94,14 +96,14 @@ export function ReportsDialog({
                 rel="noreferrer noopener"
                 className="inline-flex h-8 items-center gap-1 rounded-lg border border-ink-200 bg-white px-2.5 text-[12px] font-semibold text-ink-700 transition hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
               >
-                <ExternalIcon className="h-3.5 w-3.5" /> Open PDF
+                <ExternalIcon className="h-3.5 w-3.5" /> {t('Open PDF')}
               </a>
               <button
                 type="button"
                 onClick={() => onEditPaper(paper)}
                 className="inline-flex h-8 items-center gap-1 rounded-lg border border-ink-200 bg-white px-2.5 text-[12px] font-semibold text-ink-700 transition hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
               >
-                <PencilIcon className="h-3.5 w-3.5" /> Fix paper
+                <PencilIcon className="h-3.5 w-3.5" /> {t('Fix paper')}
               </button>
             </>
           )}
@@ -111,7 +113,7 @@ export function ReportsDialog({
               onClick={() => onResolve(report.id)}
               className="inline-flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-2.5 text-[12px] font-semibold text-white transition hover:bg-emerald-700"
             >
-              <CheckIcon className="h-3.5 w-3.5" /> Mark resolved
+              <CheckIcon className="h-3.5 w-3.5" /> {t('Mark resolved')}
             </button>
           )}
         </div>
@@ -123,8 +125,8 @@ export function ReportsDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title="Problem reports"
-      description="What students flagged. Fix the paper, then mark it resolved."
+      title={t('Problem reports')}
+      description={t('What students flagged. Fix the paper, then mark it resolved.')}
       icon={<FileIcon className="h-4 w-4" />}
       wide
     >
@@ -136,28 +138,30 @@ export function ReportsDialog({
             onClick={onReload}
             className="inline-flex items-center gap-1 rounded-lg border border-brand-300 px-2 py-1 text-[11.5px] font-semibold dark:border-brand-500/40"
           >
-            <RefreshIcon className="h-3 w-3" /> Retry
+            <RefreshIcon className="h-3 w-3" /> {t('Retry')}
           </button>
         </p>
       )}
 
       {loading && !reports.length ? (
-        <p className="py-6 text-center text-[13px] text-ink-400 dark:text-ink-500">Loading…</p>
+        <p className="py-6 text-center text-[13px] text-ink-400 dark:text-ink-500">
+          {t('Loading…')}
+        </p>
       ) : !reports.length ? (
         <p className="py-8 text-center text-[13px] text-ink-400 dark:text-ink-500">
-          No reports. Every link students tried so far worked.
+          {t('No reports. Every link students tried so far worked.')}
         </p>
       ) : (
         <div className="space-y-3">
           <section>
             <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-400 dark:text-ink-500">
-              Open · {openReports.length}
+              {t('Open · {count}', { count: openReports.length })}
             </h3>
             {openReports.length ? (
               <ul className="space-y-2">{openReports.map(renderRow)}</ul>
             ) : (
               <p className="rounded-xl bg-emerald-50 px-3 py-2 text-[12.5px] font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
-                Nothing waiting. 🎉
+                {t('Nothing waiting.')} 🎉
               </p>
             )}
           </section>
@@ -165,7 +169,7 @@ export function ReportsDialog({
           {closed.length > 0 && (
             <section>
               <h3 className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-ink-400 dark:text-ink-500">
-                Resolved · {closed.length}
+                {t('Resolved · {count}', { count: closed.length })}
               </h3>
               <ul className="space-y-2">{closed.slice(0, 20).map(renderRow)}</ul>
             </section>

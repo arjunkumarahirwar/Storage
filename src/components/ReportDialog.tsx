@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { AlertIcon, CheckIcon, LoaderIcon } from './Icons'
 import { Modal } from './Modal'
 import { classNames } from '../lib/format'
@@ -20,6 +21,7 @@ export function ReportDialog({
   onSubmit,
   onSuccess,
 }: ReportDialogProps) {
+  const { t } = useI18n()
   const [reason, setReason] = useState<ReportReason>('link_broken')
   const [details, setDetails] = useState('')
   const [busy, setBusy] = useState(false)
@@ -48,10 +50,10 @@ export function ReportDialog({
         details: details.trim() ? details.trim() : null,
       })
       setSent(true)
-      onSuccess('Report sent — thank you. It will be checked soon.')
+      onSuccess(t('Report sent — thank you. It will be checked soon.'))
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : 'Could not send the report. Try again.',
+        caught instanceof Error ? caught.message : t('Could not send the report. Try again.'),
       )
     } finally {
       setBusy(false)
@@ -62,11 +64,11 @@ export function ReportDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title={sent ? 'Report sent' : 'Report a problem'}
+      title={sent ? t('Report sent') : t('Report a problem')}
       description={
         sent
           ? undefined
-          : 'Nothing to sign in for. Tell me what is wrong with this PDF and it will be fixed.'
+          : t('Nothing to sign in for. Tell me what is wrong with this PDF and it will be fixed.')
       }
       icon={<AlertIcon className="h-4 w-4" />}
     >
@@ -75,8 +77,9 @@ export function ReportDialog({
           <p className="flex items-start gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-[13px] font-medium text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
             <CheckIcon className="mt-px h-4 w-4 shrink-0" />
             <span>
-              Your report for <span className="font-semibold">{paper?.title}</span> has been
-              saved. If the link is broken it will be replaced with a working one.
+              {t('Your report for')}{' '}
+              <span className="font-semibold">{paper?.title}</span>{' '}
+              {t('has been saved. If the link is broken it will be replaced with a working one.')}
             </span>
           </p>
           <button
@@ -84,7 +87,7 @@ export function ReportDialog({
             onClick={onClose}
             className="h-11 w-full rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700"
           >
-            Done
+            {t('Done')}
           </button>
         </div>
       ) : (
@@ -115,10 +118,10 @@ export function ReportDialog({
                 />
                 <span className="min-w-0">
                   <span className="block text-[13px] font-semibold text-ink-800 dark:text-ink-100">
-                    {entry.label}
+                    {t(entry.label)}
                   </span>
                   <span className="block text-[11.5px] leading-snug text-ink-500 dark:text-ink-400">
-                    {entry.hint}
+                    {t(entry.hint)}
                   </span>
                 </span>
               </label>
@@ -127,14 +130,14 @@ export function ReportDialog({
 
           <label className="block">
             <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-              Anything else? (optional)
+              {t('Anything else? (optional)')}
             </span>
             <textarea
               value={details}
               onChange={(event) => setDetails(event.target.value.slice(0, 600))}
               rows={3}
               maxLength={600}
-              placeholder="For example: the PDF opens but pages 4–7 are missing."
+              placeholder={t('For example: the PDF opens but pages 4–7 are missing.')}
               className="w-full resize-none rounded-xl border border-ink-200 bg-white px-3 py-2 text-[13.5px] text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 dark:border-ink-700 dark:bg-ink-800 dark:text-white dark:placeholder:text-ink-500"
             />
             <span className="mt-0.5 block text-right text-[10.5px] text-ink-400 dark:text-ink-500">
@@ -154,7 +157,7 @@ export function ReportDialog({
             className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
             {busy && <LoaderIcon className="h-4 w-4" />}
-            Send report
+            {t('Send report')}
           </button>
         </form>
       )}

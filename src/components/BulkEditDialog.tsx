@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { parseTagInput } from '../lib/drive'
 import type { BulkPatch } from '../lib/types'
 import { AlertIcon, LayersIcon, LoaderIcon } from './Icons'
@@ -29,6 +30,7 @@ export function BulkEditDialog({
   onApply,
   onSuccess,
 }: BulkEditDialogProps) {
+  const { t } = useI18n()
   const [folder, setFolder] = useState('')
   const [addTags, setAddTags] = useState('')
   const [removeTags, setRemoveTags] = useState('')
@@ -61,17 +63,17 @@ export function BulkEditDialog({
     else if (year.trim()) {
       const value = Number(year)
       if (!Number.isInteger(value) || value < 1990 || value > 2100) {
-        return 'The exam year should be between 1990 and 2100.'
+        return t('The exam year should be between 1990 and 2100.')
       }
       patch.examYear = value
     }
     if (shift !== 'keep') patch.examShift = shift === 'none' ? null : Number(shift)
 
-    if (Object.keys(patch).length === 0) return 'Fill in at least one field to change.'
+    if (Object.keys(patch).length === 0) return t('Fill in at least one field to change.')
     if (patch.addTags && patch.removeTags) {
       const removing = new Set(patch.removeTags.map((tag) => tag.toLowerCase()))
       if (patch.addTags.some((tag) => removing.has(tag.toLowerCase()))) {
-        return 'A tag cannot be both added and removed.'
+        return t('A tag cannot be both added and removed.')
       }
     }
     return patch
@@ -88,10 +90,12 @@ export function BulkEditDialog({
     setError(null)
     try {
       await onApply(result)
-      onSuccess(`${count} ${count === 1 ? 'paper' : 'papers'} updated.`)
+      onSuccess(
+        t(count === 1 ? '{count} paper updated.' : '{count} papers updated.', { count }),
+      )
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save those changes.')
+      setError(caught instanceof Error ? caught.message : t('Could not save those changes.'))
     } finally {
       setBusy(false)
     }
@@ -103,21 +107,23 @@ export function BulkEditDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Edit ${count} ${count === 1 ? 'paper' : 'papers'}`}
-      description="Only the fields you fill in change — everything else on these cards stays as it is."
+      title={t(count === 1 ? 'Edit {count} paper' : 'Edit {count} papers', { count })}
+      description={t(
+        'Only the fields you fill in change — everything else on these cards stays as it is.',
+      )}
       icon={<LayersIcon className="h-4 w-4" />}
     >
       <form onSubmit={submit} className="space-y-3">
         <div>
           <label className={labelClass} htmlFor="bulk-folder">
-            Move to folder
+            {t('Move to folder')}
           </label>
           <input
             id="bulk-folder"
             value={folder}
             onChange={(event) => setFolder(event.target.value)}
             list="bulk-category-options"
-            placeholder="Leave blank to keep the current folder"
+            placeholder={t('Leave blank to keep the current folder')}
             className={field}
             maxLength={60}
           />
@@ -131,40 +137,42 @@ export function BulkEditDialog({
         <div className="grid gap-2.5 sm:grid-cols-2">
           <div>
             <label className={labelClass} htmlFor="bulk-add-tags">
-              Add tags
+              {t('Add tags')}
             </label>
             <input
               id="bulk-add-tags"
               value={addTags}
               onChange={(event) => setAddTags(event.target.value)}
-              placeholder="Shift 2, 2025"
+              placeholder={t('Shift 2, 2025')}
               className={field}
             />
           </div>
           <div>
             <label className={labelClass} htmlFor="bulk-remove-tags">
-              Remove tags
+              {t('Remove tags')}
             </label>
             <input
               id="bulk-remove-tags"
               value={removeTags}
               onChange={(event) => setRemoveTags(event.target.value)}
-              placeholder="Solutions"
+              placeholder={t('Solutions')}
               className={field}
             />
           </div>
         </div>
         {tagCount > 0 && (
           <p className="-mt-1 text-[11.5px] text-ink-400 dark:text-ink-500">
-            {tagCount === 1 ? 'One tag' : `${tagCount} tags`} added to each card; existing
-            tags are kept, and spelling is tidied as usual.
+            {t('{tags} added to each card; existing tags are kept, and spelling is tidied as usual.', {
+              tags:
+                tagCount === 1 ? t('One tag') : t('{count} tags', { count: tagCount }),
+            })}
           </p>
         )}
 
         <div className="grid gap-2.5 sm:grid-cols-2">
           <div>
             <label className={labelClass} htmlFor="bulk-year">
-              Exam year
+              {t('Exam year')}
             </label>
             <input
               id="bulk-year"
@@ -175,7 +183,7 @@ export function BulkEditDialog({
               value={year}
               disabled={clearYear}
               onChange={(event) => setYear(event.target.value.slice(0, 4))}
-              placeholder="Leave blank to keep"
+              placeholder={t('Leave blank to keep')}
               className={`${field} disabled:opacity-50`}
             />
             <label className="mt-1 flex items-center gap-1.5 text-[11.5px] text-ink-500 dark:text-ink-400">
@@ -188,12 +196,12 @@ export function BulkEditDialog({
                 }}
                 className="h-3.5 w-3.5 rounded border-ink-300 accent-brand-600"
               />
-              Clear the year on these papers
+              {t('Clear the year on these papers')}
             </label>
           </div>
           <div>
             <label className={labelClass} htmlFor="bulk-shift">
-              Shift
+              {t('Shift')}
             </label>
             <select
               id="bulk-shift"
@@ -201,12 +209,12 @@ export function BulkEditDialog({
               onChange={(event) => setShift(event.target.value)}
               className={field}
             >
-              <option value="keep">Keep each shift</option>
-              <option value="none">No shift</option>
-              <option value="1">Shift 1</option>
-              <option value="2">Shift 2</option>
-              <option value="3">Shift 3</option>
-              <option value="4">Shift 4</option>
+              <option value="keep">{t('Keep each shift')}</option>
+              <option value="none">{t('No shift')}</option>
+              <option value="1">{t('Shift 1')}</option>
+              <option value="2">{t('Shift 2')}</option>
+              <option value="3">{t('Shift 3')}</option>
+              <option value="4">{t('Shift 4')}</option>
             </select>
           </div>
         </div>
@@ -224,7 +232,7 @@ export function BulkEditDialog({
             disabled={busy}
             className="h-10 flex-1 rounded-xl border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 transition hover:bg-ink-50 disabled:opacity-60 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
           >
-            Cancel
+            {t('Cancel')}
           </button>
           <button
             type="submit"
@@ -232,7 +240,7 @@ export function BulkEditDialog({
             className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
           >
             {busy && <LoaderIcon className="h-4 w-4" />}
-            Apply to {count}
+            {t('Apply to {count}', { count })}
           </button>
         </div>
       </form>

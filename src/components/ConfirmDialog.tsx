@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { Modal } from './Modal'
 import { TrashIcon } from './Icons'
 
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
+  const { t } = useI18n()
   const [busy, setBusy] = useState(false)
 
   const run = async () => {
@@ -47,7 +49,7 @@ export function ConfirmDialog({
           disabled={busy}
           className="h-10 flex-1 rounded-xl border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 transition hover:bg-ink-50 disabled:opacity-60 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
         >
-          Cancel
+          {t('Cancel')}
         </button>
         <button
           type="button"
@@ -55,7 +57,7 @@ export function ConfirmDialog({
           disabled={busy}
           className="h-10 flex-1 rounded-xl bg-brand-600 text-[13.5px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
         >
-          {busy ? 'Deleting…' : confirmLabel}
+          {busy ? t('Deleting…') : t(confirmLabel)}
         </button>
       </div>
     </Modal>

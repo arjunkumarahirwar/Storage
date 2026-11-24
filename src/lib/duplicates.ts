@@ -1,5 +1,15 @@
 import type { Paper } from './types'
 
+/** Lets the caller turn a message into the reader's language; identity by default. */
+export type Translate = (text: string, vars?: Record<string, string | number>) => string
+
+const plain: Translate = (text, vars) =>
+  vars
+    ? text.replace(/\{(\w+)\}/g, (whole, key: string) =>
+        key in vars ? String(vars[key]) : whole,
+      )
+    : text
+
 /**
  * Duplicate hunting. Two papers are duplicates when they point at the same
  * Drive file, when their titles say the same thing, or when they claim the
@@ -53,32 +63,47 @@ export const checkAgainstLibrary = (
   input: { title: string; fileId: string | null; answerFileId?: string | null },
   papers: Paper[],
   ignoreId?: string,
+  t: Translate = plain,
 ): LinkCheck => {
   const owners = fileOwners(papers, ignoreId)
 
   if (input.fileId) {
     const owner = owners.get(input.fileId)
     if (owner?.role === 'paper') {
-      return { blocked: `Already in the library as “${owner.paper.title}”.` }
+      return {
+        blocked: t('Already in the library as “{title}”.', { title: owner.paper.title }),
+      }
     }
     if (owner?.role === 'key') {
-      return { blocked: `That file is already the answer key of “${owner.paper.title}”.` }
+      return {
+        blocked: t('That file is already the answer key of “{title}”.', {
+          title: owner.paper.title,
+        }),
+      }
     }
   }
 
   if (input.answerFileId) {
     const owner = owners.get(input.answerFileId)
     if (owner?.role === 'key') {
-      return { blocked: `That answer key is already attached to “${owner.paper.title}”.` }
+      return {
+        blocked: t('That answer key is already attached to “{title}”.', {
+          title: owner.paper.title,
+        }),
+      }
     }
     if (owner?.role === 'paper') {
-      return { blocked: `That file is already a paper: “${owner.paper.title}”.` }
+      return {
+        blocked: t('That file is already a paper: “{title}”.', { title: owner.paper.title }),
+      }
     }
   }
 
   const twin = titleOwner(input.title, papers, ignoreId)
   if (twin) {
-    return { warning: `A paper called “${twin.title}” is already in the library.` }
+    return {
+      warning: t('A paper called “{title}” is already in the library.', { title: twin.title }),
+    }
   }
   return {}
 }

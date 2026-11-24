@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import { BookIcon, PlusIcon, SearchIcon } from './Icons'
 
 interface EmptyStateProps {
@@ -8,6 +9,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ variant, isAdmin, onAdd, onClear }: EmptyStateProps) {
+  const { t } = useI18n()
   const isSearch = variant === 'search'
 
   return (
@@ -16,14 +18,16 @@ export function EmptyState({ variant, isAdmin, onAdd, onClear }: EmptyStateProps
         {isSearch ? <SearchIcon className="h-6 w-6" /> : <BookIcon className="h-6 w-6" />}
       </span>
       <h3 className="mt-3 text-[15px] font-bold text-ink-900 dark:text-white">
-        {isSearch ? 'No papers match that' : 'The library is empty'}
+        {isSearch ? t('No papers match that') : t('The library is empty')}
       </h3>
       <p className="mt-1 max-w-xs text-[12.5px] leading-relaxed text-ink-500 dark:text-ink-400">
         {isSearch
-          ? 'Try a different year, shift number or clear the search to see every paper.'
+          ? t('Try a different year, shift number or clear the search to see every paper.')
           : isAdmin
-            ? 'Paste your Google Drive links to publish the first papers. Students can open them straight away.'
-            : 'Papers will appear here as soon as the administrator adds them.'}
+            ? t(
+                'Paste your Google Drive links to publish the first papers. Students can open them straight away.',
+              )
+            : t('Papers will appear here as soon as the administrator adds them.')}
       </p>
       {isSearch ? (
         <button
@@ -31,7 +35,7 @@ export function EmptyState({ variant, isAdmin, onAdd, onClear }: EmptyStateProps
           onClick={onClear}
           className="mt-4 h-9 rounded-full border border-ink-200 px-4 text-[13px] font-semibold text-ink-700 transition hover:bg-ink-50 dark:border-ink-700 dark:text-ink-200 dark:hover:bg-ink-800"
         >
-          Clear search
+          {t('Clear search')}
         </button>
       ) : (
         isAdmin && (
@@ -40,7 +44,7 @@ export function EmptyState({ variant, isAdmin, onAdd, onClear }: EmptyStateProps
             onClick={onAdd}
             className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-600 px-4 text-[13px] font-semibold text-white transition hover:bg-brand-700"
           >
-            <PlusIcon className="h-4 w-4" /> Add PDFs
+            <PlusIcon className="h-4 w-4" /> {t('Add PDFs')}
           </button>
         )
       )}

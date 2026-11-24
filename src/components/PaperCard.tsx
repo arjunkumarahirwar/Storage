@@ -1,4 +1,5 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { driveDownloadUrl, driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
 import type { LinkStatus, NoteEntry, Paper, PracticeAttempt } from '../lib/types'
@@ -96,6 +97,7 @@ export function PaperCard({
   onEdit,
   onDelete,
 }: PaperCardProps) {
+  const { t } = useI18n()
   const viewUrl = driveViewUrl(paper.drive_file_id)
   const downloadUrl = driveDownloadUrl(paper.drive_file_id)
   const recent = isRecent(paper.created_at)
@@ -137,8 +139,8 @@ export function PaperCard({
             <button
               type="button"
               {...dragHandleProps}
-              aria-label={`Drag ${paper.title} up or down to reorder`}
-              title="Hold and drag me to reorder"
+              aria-label={t('Drag {title} up or down to reorder', { title: paper.title })}
+              title={t('Drag {title} up or down to reorder', { title: paper.title })}
               className="grid h-9 w-6 cursor-grab touch-none select-none place-items-center rounded-lg border border-ink-200 bg-white text-ink-400 shadow-card transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 active:cursor-grabbing dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
             >
               <GripIcon className="h-4 w-4" />
@@ -147,8 +149,8 @@ export function PaperCard({
               type="button"
               onClick={() => onMove?.(-1)}
               disabled={!canMoveUp}
-              aria-label={`Move ${paper.title} up`}
-              title="Move up"
+              aria-label={t('Move {title} up', { title: paper.title })}
+              title={t('Move up')}
               className="grid h-6 w-6 place-items-center rounded-md border border-ink-200/80 bg-white text-ink-400 transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 disabled:border-transparent disabled:bg-transparent disabled:opacity-25 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
             >
               <ChevronUpIcon className="h-3.5 w-3.5" />
@@ -157,8 +159,8 @@ export function PaperCard({
               type="button"
               onClick={() => onMove?.(1)}
               disabled={!canMoveDown}
-              aria-label={`Move ${paper.title} down`}
-              title="Move down"
+              aria-label={t('Move {title} down', { title: paper.title })}
+              title={t('Move down')}
               className="grid h-6 w-6 place-items-center rounded-md border border-ink-200/80 bg-white text-ink-400 transition hover:border-ink-300 hover:bg-ink-100 hover:text-ink-700 disabled:border-transparent disabled:bg-transparent disabled:opacity-25 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-400 dark:hover:text-white"
             >
               <ChevronDownIcon className="h-3.5 w-3.5" />
@@ -169,7 +171,7 @@ export function PaperCard({
           href={viewUrl}
           target="_blank"
           rel="noreferrer noopener"
-          aria-label={`Open ${paper.title} in Google Drive`}
+          aria-label={t('Open {title} in Google Drive', { title: paper.title })}
           className="relative grid h-14 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-blue-50 text-sky-500 transition hover:border-sky-300 hover:text-sky-600 dark:border-sky-500/20 dark:from-sky-500/15 dark:via-ink-900 dark:to-blue-500/10 dark:text-sky-300"
         >
           <FileIcon className="h-6 w-6" />
@@ -212,7 +214,7 @@ export function PaperCard({
 
             {recent && !done && (
               <span className="mt-0.5 shrink-0 rounded-full bg-brand-50 px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-brand-700 dark:bg-brand-500/15 dark:text-brand-300">
-                New
+                {t('New')}
               </span>
             )}
 
@@ -244,10 +246,10 @@ export function PaperCard({
                 href={driveViewUrl(answerKey.fileId)}
                 target="_blank"
                 rel="noreferrer noopener"
-                title={`Answer key: ${answerKey.title}`}
+                title={t('Answer key: {title}', { title: answerKey.title })}
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300 dark:hover:bg-emerald-500/20"
               >
-                <CheckIcon className="h-3 w-3" /> Answer key
+                <CheckIcon className="h-3 w-3" /> {t('Answer key')}
               </a>
             )}
             {originalPaper && (
@@ -255,10 +257,10 @@ export function PaperCard({
                 href={driveViewUrl(originalPaper.drive_file_id)}
                 target="_blank"
                 rel="noreferrer noopener"
-                title={`Question paper: ${originalPaper.title}`}
+                title={t('Question paper: {title}', { title: originalPaper.title })}
                 className="inline-flex items-center gap-1 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 transition hover:border-ink-300 hover:bg-ink-50 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-300 dark:hover:bg-ink-700"
               >
-                <FileIcon className="h-3 w-3" /> Question paper
+                <FileIcon className="h-3 w-3" /> {t('Question paper')}
               </a>
             )}
             <span className="rounded-md bg-ink-100 px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 dark:bg-ink-800 dark:text-ink-300">
@@ -266,7 +268,7 @@ export function PaperCard({
             </span>
             {note?.difficulty && (
               <span
-                title="Your difficulty rating"
+                title={t('Your difficulty rating')}
                 className={classNames(
                   'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-bold',
                   note.difficulty === 'easy'
@@ -278,23 +280,23 @@ export function PaperCard({
               >
                 <NoteIcon className="h-3 w-3" />
                 {note.difficulty === 'easy'
-                  ? 'Easy'
+                  ? t('Easy')
                   : note.difficulty === 'hard'
-                    ? 'Hard'
-                    : 'Medium'}
+                    ? t('Hard')
+                    : t('Medium')}
               </span>
             )}
             {practiceRunning && (
               <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">
-                <ClockIcon className="h-3 w-3" /> Timer running
+                <ClockIcon className="h-3 w-3" /> {t('Timer running')}
               </span>
             )}
             {!practiceRunning && attempts && attempts.length > 0 && (
               <span
-                title={`${attempts.length} timed attempt${attempts.length === 1 ? '' : 's'}`}
+                title={t('Timed attempts')}
                 className="inline-flex items-center gap-1 rounded-md border border-ink-200 px-1.5 py-0.5 text-[11px] font-semibold text-ink-500 dark:border-ink-700 dark:text-ink-400"
               >
-                <ClockIcon className="h-3 w-3" /> Best{' '}
+                <ClockIcon className="h-3 w-3" /> {t('Best')}{' '}
                 {Math.max(...attempts.map((attempt) => attempt.score))}/
                 {attempts[0].total} · {attempts.length}×
               </span>
@@ -318,27 +320,27 @@ export function PaperCard({
                 rel="noreferrer noopener"
                 className="font-medium text-ink-500 underline decoration-ink-300 decoration-dotted underline-offset-2 transition hover:text-brand-600 dark:text-ink-400 dark:hover:text-brand-300"
               >
-                Official ESB page
+                {t('Official ESB page')}
               </a>
             ) : (
-              <span>Own work</span>
+              <span>{t('Own work')}</span>
             )}
             <span aria-hidden>·</span>
-            <span>Added {formatDate(paper.created_at)}</span>
+            <span>{t('Added {date}', { date: formatDate(paper.created_at) })}</span>
             <span aria-hidden>·</span>
             <button
               type="button"
               onClick={onPractice}
-              title="Practise this paper against the clock"
+              title={t('Practise this paper against the clock')}
               className="inline-flex items-center gap-1 rounded font-semibold text-ink-400 underline decoration-dotted underline-offset-2 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
             >
-              <ClockIcon className="h-3 w-3" /> Practice
+              <ClockIcon className="h-3 w-3" /> {t('Practice')}
             </button>
             <span aria-hidden>·</span>
             <button
               type="button"
               onClick={onNotes}
-              title="Your private note and difficulty rating"
+              title={t('Your private note and difficulty rating')}
               className={classNames(
                 'inline-flex items-center gap-1 rounded font-semibold underline decoration-dotted underline-offset-2 transition',
                 note?.note
@@ -346,13 +348,13 @@ export function PaperCard({
                   : 'text-ink-400 hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300',
               )}
             >
-              <NoteIcon className="h-3 w-3" /> Notes
+              <NoteIcon className="h-3 w-3" /> {t('Notes')}
             </button>
             <span aria-hidden>·</span>
             <button
               type="button"
               onClick={onReport}
-              title="Tell the admin something is wrong with this paper"
+              title={t('Tell the admin something is wrong with this paper')}
               className={classNames(
                 'inline-flex items-center gap-1 rounded font-semibold underline decoration-dotted underline-offset-2 transition',
                 reported
@@ -361,7 +363,7 @@ export function PaperCard({
               )}
             >
               <AlertIcon className="h-3 w-3" />
-              {reported ? 'Reported' : 'Report a problem'}
+              {reported ? t('Reported') : t('Report a problem')}
             </button>
           </p>
         </div>
@@ -374,7 +376,7 @@ export function PaperCard({
           rel="noreferrer noopener"
           className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-brand-600 px-2.5 text-[12.5px] font-semibold text-white sm:px-3 transition hover:bg-brand-700 active:scale-[0.98]"
         >
-          <ExternalIcon className="h-4 w-4" /> Open
+          <ExternalIcon className="h-4 w-4" /> {t('Open')}
         </a>
         <a
           href={downloadUrl}
@@ -382,12 +384,12 @@ export function PaperCard({
           rel="noreferrer noopener"
           className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-ink-200 bg-white px-2.5 text-[12.5px] font-semibold text-ink-700 sm:px-3 transition hover:bg-ink-50 active:scale-[0.98] dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
         >
-          <DownloadIcon className="h-4 w-4" /> Download
+          <DownloadIcon className="h-4 w-4" /> {t('Download')}
         </a>
         <button
           type="button"
           onClick={onShare}
-          aria-label={`Share ${paper.title}`}
+          aria-label={t('Share {title}', { title: paper.title })}
           className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-ink-200 text-ink-500 transition hover:bg-ink-50 hover:text-ink-800 active:scale-95 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
         >
           <ShareIcon className="h-4 w-4" />
@@ -396,7 +398,11 @@ export function PaperCard({
           type="button"
           onClick={onToggleDone}
           aria-pressed={done}
-          aria-label={done ? `Mark ${paper.title} as not done` : `Mark ${paper.title} as done`}
+          aria-label={
+            done
+              ? t('Mark {title} as not done', { title: paper.title })
+              : t('Mark {title} as done', { title: paper.title })
+          }
           className={classNames(
             'inline-flex h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border px-2.5 text-[12.5px] font-semibold transition active:scale-[0.98]',
             done
@@ -404,7 +410,7 @@ export function PaperCard({
               : 'border-ink-200 bg-white text-ink-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-300 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300',
           )}
         >
-          <CheckIcon className="h-3.5 w-3.5" /> {done ? 'Done' : 'Mark'}
+          <CheckIcon className="h-3.5 w-3.5" /> {done ? t('Done') : t('Mark')}
         </button>
       </div>
     </article>

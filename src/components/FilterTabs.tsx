@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import type { ProgressFilter } from '../lib/types'
 
 interface FilterTabsProps {
@@ -13,10 +14,11 @@ const OPTIONS: { value: ProgressFilter; label: string }[] = [
 ]
 
 export function FilterTabs({ value, counts, onChange }: FilterTabsProps) {
+  const { t } = useI18n()
   return (
     <div
       role="tablist"
-      aria-label="Filter papers by progress"
+      aria-label={t('Filter papers by progress')}
       className="flex items-center gap-1 rounded-2xl border border-ink-200 bg-ink-100/70 p-1 dark:border-ink-700 dark:bg-ink-900"
     >
       {OPTIONS.map((option) => {
@@ -35,7 +37,7 @@ export function FilterTabs({ value, counts, onChange }: FilterTabsProps) {
                 : 'text-ink-500 hover:text-ink-800 dark:text-ink-400 dark:hover:text-ink-100',
             ].join(' ')}
           >
-            {option.label}
+            {t(option.label)}
             <span
               className={[
                 'rounded-full px-1.5 text-[10.5px] font-bold leading-4',

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { USERNAME_PATTERN } from '../hooks/useProfile'
 import type { Profile } from '../lib/types'
 import { Avatar } from './Avatar'
@@ -30,6 +31,7 @@ export function ProfileDialog({
   onSignOut,
   onSuccess,
 }: ProfileDialogProps) {
+  const { t } = useI18n()
   const [username, setUsername] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
@@ -63,7 +65,7 @@ export function ProfileDialog({
     event.target.value = ''
     if (!chosen) return
     if (!chosen.type.startsWith('image/')) {
-      setError('Please choose a picture (JPG, PNG or WebP).')
+      setError(t('Please choose a picture (JPG, PNG or WebP).'))
       return
     }
     if (preview) URL.revokeObjectURL(preview)
@@ -76,20 +78,20 @@ export function ProfileDialog({
     event.preventDefault()
     setError(null)
     if (!usernameOk) {
-      setError('Use 3–24 letters, numbers, dots or underscores — no spaces.')
+      setError(t('Use 3–24 letters, numbers, dots or underscores — no spaces.'))
       return
     }
     if (!hasPicture) {
-      setError('Please add a profile picture.')
+      setError(t('Please add a profile picture.'))
       return
     }
     setBusy(true)
     try {
       await onSave({ username: cleaned, file })
-      onSuccess(required ? 'Profile created — welcome!' : 'Profile updated.')
+      onSuccess(t(required ? 'Profile created — welcome!' : 'Profile updated.'))
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save your profile.')
+      setError(caught instanceof Error ? caught.message : t('Could not save your profile.'))
     } finally {
       setBusy(false)
     }
@@ -100,11 +102,11 @@ export function ProfileDialog({
       open={open}
       onClose={onClose}
       dismissible={!required}
-      title={required ? 'Finish your profile' : 'Your profile'}
+      title={required ? t('Finish your profile') : t('Your profile')}
       description={
         required
-          ? 'Pick a username and a profile picture. You only do this once.'
-          : 'Change the name and picture other people see.'
+          ? t('Pick a username and a profile picture. You only do this once.')
+          : t('Change the name and picture other people see.')
       }
       icon={<UserIcon className="h-4 w-4" />}
     >
@@ -114,7 +116,7 @@ export function ProfileDialog({
             type="button"
             onClick={() => fileInput.current?.click()}
             className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-ink-300 bg-ink-50 text-ink-400 transition hover:border-brand-400 hover:text-brand-500 dark:border-ink-600 dark:bg-ink-800 dark:text-ink-500"
-            aria-label="Choose a profile picture"
+            aria-label={t('Choose a profile picture')}
           >
             {preview ? (
               <img src={preview} alt="" className="h-full w-full object-cover" />
@@ -124,24 +126,25 @@ export function ProfileDialog({
               <UserIcon className="h-8 w-8" />
             )}
             <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-ink-950/60 py-1 text-center text-[10px] font-semibold uppercase tracking-wide text-white">
-              {hasPicture ? 'Change' : 'Add photo'}
+              {hasPicture ? t('Change') : t('Add photo')}
             </span>
           </button>
 
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-semibold text-ink-800 dark:text-ink-100">
-              Profile picture
+              {t('Profile picture')}
             </p>
             <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
-              A square photo works best. It is cropped and shrunk automatically, so a
-              camera photo is fine.
+              {t(
+                'A square photo works best. It is cropped and shrunk automatically, so a camera photo is fine.',
+              )}
             </p>
             <button
               type="button"
               onClick={() => fileInput.current?.click()}
               className="mt-2 h-8 rounded-lg border border-ink-200 px-2.5 text-[12px] font-semibold text-ink-600 transition hover:bg-ink-50 dark:border-ink-700 dark:text-ink-300 dark:hover:bg-ink-800"
             >
-              {hasPicture ? 'Choose another photo' : 'Choose photo'}
+              {hasPicture ? t('Choose another photo') : t('Choose photo')}
             </button>
           </div>
 
@@ -156,7 +159,7 @@ export function ProfileDialog({
 
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            Username
+            {t('Username')}
           </span>
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-ink-400">
@@ -174,13 +177,13 @@ export function ProfileDialog({
             />
           </div>
           <span className="mt-1 block text-[11.5px] text-ink-400 dark:text-ink-500">
-            3–24 letters, numbers, dots or underscores. This is what classmates see.
+            {t('3–24 letters, numbers, dots or underscores. This is what classmates see.')}
           </span>
         </label>
 
         {email && (
           <p className="rounded-xl bg-ink-50 px-3 py-2 text-[11.5px] text-ink-500 dark:bg-ink-800/60 dark:text-ink-400">
-            Signed in as {email}
+            {t('Signed in as {email}', { email })}
           </p>
         )}
 
@@ -197,7 +200,7 @@ export function ProfileDialog({
           className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {busy && <LoaderIcon className="h-4 w-4 animate-spin" />}
-          {busy ? 'Saving…' : required ? 'Create my profile' : 'Save changes'}
+          {busy ? t('Saving…') : required ? t('Create my profile') : t('Save changes')}
         </button>
 
         {required && (
@@ -206,7 +209,7 @@ export function ProfileDialog({
             onClick={onSignOut}
             className="w-full text-center text-[12px] font-semibold text-ink-400 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
           >
-            Sign out instead
+            {t('Sign out instead')}
           </button>
         )}
       </form>

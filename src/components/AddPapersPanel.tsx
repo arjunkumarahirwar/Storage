@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import {
   driveViewUrl,
   parseDriveLink,
@@ -53,6 +54,7 @@ export function AddPapersPanel({
   onUpdate,
   onToast,
 }: AddPapersPanelProps) {
+  const { t } = useI18n()
   const [raw, setRaw] = useState('')
   const [titleOverrides, setTitleOverrides] = useState<Record<string, string>>({})
   /** Per-row answer-key links, keyed the same way as titleOverrides. */
@@ -143,7 +145,7 @@ export function AddPapersPanel({
             'Could not find a file id in this link.'
           : undefined,
       // Same Drive file as a card already in the library? Same title?
-      library: checkAgainstLibrary({ title, fileId: row.fileId, answerFileId }, existing),
+      library: checkAgainstLibrary({ title, fileId: row.fileId, answerFileId }, existing, undefined, t),
     }
   })
 
@@ -158,22 +160,28 @@ export function AddPapersPanel({
 
   const addProblem = (() => {
     if (!effectiveRows.length) return null
-    if (effectiveRows.some((row) => !row.fileId)) return 'Fix the links marked in red first.'
-    if (effectiveRows.some((row) => !row.title)) return 'Every paper needs a title.'
+    if (effectiveRows.some((row) => !row.fileId)) return t('Fix the links marked in red first.')
+    if (effectiveRows.some((row) => !row.title)) return t('Every paper needs a title.')
     if (effectiveRows.some((row) => row.fileId && idCounts[row.fileId] > 1))
-      return 'The same Drive file appears twice.'
+      return t('The same Drive file appears twice.')
     const badKey = effectiveRows.find((row) => row.answerLink && !row.answerFileId)
     if (badKey)
-      return `The answer key link for “${badKey.title || 'this paper'}” is not a Google Drive file link.`
+      return t(
+        'The answer key link for “{title}” is not a Google Drive file link.',
+        { title: badKey.title || t('this paper') },
+      )
     if (effectiveRows.some((row) => row.answerFileId && idCounts[row.answerFileId] > 1))
-      return 'An answer key is the same file as a question paper. Attach a different PDF.'
+      return t('An answer key is the same file as a question paper. Attach a different PDF.')
     const blocked = effectiveRows.find((row) => row.library.blocked)
-    if (blocked) return `${blocked.title || 'This link'}: ${blocked.library.blocked}`
+    if (blocked)
+      return `${blocked.title || t('This link')}: ${blocked.library.blocked}`
     if (softDuplicates.length && !acknowledgeTitles)
-      return 'Some titles match a paper already in the library. Tick “add anyway” below, or change the titles.'
-    if (!category.trim()) return 'Pick a folder name.'
+      return t(
+        'Some titles match a paper already in the library. Tick “add anyway” below, or change the titles.',
+      )
+    if (!category.trim()) return t('Pick a folder name.')
     if (sourceType === 'official' && !/^https:\/\/\S+$/i.test(sourceUrl.trim()))
-      return 'Official sources need an https:// link.'
+      return t('Official sources need an https:// link.')
     return null
   })()
 
@@ -181,7 +189,7 @@ export function AddPapersPanel({
     event.preventDefault()
     setError(null)
     if (!effectiveRows.length) {
-      setError('Paste at least one Google Drive link.')
+      setError(t('Paste at least one Google Drive link.'))
       return
     }
     if (addProblem) {
@@ -219,21 +227,27 @@ export function AddPapersPanel({
       if (result.inserted > 0) {
         const paperCount = result.inserted
         const pieces = [
-          `${paperCount} ${paperCount === 1 ? 'paper' : 'papers'}`,
+          t(paperCount === 1 ? '{count} paper' : '{count} papers', { count: paperCount }),
         ]
         if (answerKeyCount > 0) {
           pieces.push(
-            answerKeyCount === 1 ? 'an answer key' : `${answerKeyCount} answer keys`,
+            answerKeyCount === 1
+              ? t('an answer key')
+              : t('{count} answer keys', { count: answerKeyCount }),
           )
         }
-        onToast(`${pieces.join(' with ')} added to the library.`, 'success')
+        onToast(t('{pieces} added to the library.', { pieces: pieces.join(` ${t('with')} `) }), 'success')
       }
       if (result.failures.length) {
         const first = result.failures[0]
         onToast(
           result.failures.length === 1
             ? `${first.title}: ${first.message}`
-            : `${result.failures.length} links were skipped — ${first.title}: ${first.message}`,
+            : t('{count} links were skipped — {title}: {message}', {
+                count: result.failures.length,
+                title: first.title,
+                message: first.message,
+              }),
           'error',
         )
         if (result.inserted === 0) setError(result.failures[0].message)
@@ -245,7 +259,7 @@ export function AddPapersPanel({
         onClose()
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not save those papers.')
+      setError(caught instanceof Error ? caught.message : t('Could not save those papers.'))
     } finally {
       setBusy(false)
     }
@@ -257,6 +271,7 @@ export function AddPapersPanel({
         { title: editTitle, fileId: null, answerFileId: parsedEditKey.fileId },
         existing,
         editing.id,
+        t,
       )
     : {}
 
@@ -265,17 +280,17 @@ export function AddPapersPanel({
     if (!editing) return
     setError(null)
     if (!editTitle.trim()) {
-      setError('The title cannot be empty.')
+      setError(t('The title cannot be empty.'))
       return
     }
     if (editSourceType === 'official' && !/^https:\/\/\S+$/i.test(editSourceUrl.trim())) {
-      setError('Official sources need an https:// link.')
+      setError(t('Official sources need an https:// link.'))
       return
     }
     const keyLink = editKeyLink.trim()
     const parsedKey = keyLink ? parseDriveLink(keyLink) : { fileId: null }
     if (keyLink && !parsedKey.fileId) {
-      setError('That answer key link is not a Google Drive file link.')
+      setError(t('That answer key link is not a Google Drive file link.'))
       return
     }
     if (editLibraryCheck.blocked) {
@@ -296,10 +311,10 @@ export function AddPapersPanel({
         exam_year: editYear ? Number(editYear) : null,
         exam_shift: editShift ? Number(editShift) : null,
       })
-      onToast('Paper updated.', 'success')
+      onToast(t('Paper updated.'), 'success')
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not update this paper.')
+      setError(caught instanceof Error ? caught.message : t('Could not update this paper.'))
     } finally {
       setBusy(false)
     }
@@ -310,11 +325,13 @@ export function AddPapersPanel({
       open={open}
       onClose={onClose}
       wide
-      title={editing ? 'Edit paper' : 'Add PDFs'}
+      title={editing ? t('Edit paper') : t('Add PDFs')}
       description={
         editing
-          ? 'Change the title, folder, tags or source for this paper.'
-          : 'Paste Google Drive links — one per line. Add a title before a pipe: Title | link.'
+          ? t('Change the title, folder, tags or source for this paper.')
+          : t(
+              'Paste Google Drive links — one per line. Add a title before a pipe: Title | link.',
+            )
       }
       icon={editing ? <FileIcon className="h-4 w-4" /> : <PlusIcon className="h-4 w-4" />}
     >
@@ -322,7 +339,7 @@ export function AddPapersPanel({
         <form onSubmit={submitEdit} className="space-y-3">
           <div>
             <label className={labelClass} htmlFor="edit-title">
-              Title
+              {t('Title')}
             </label>
             <input
               id="edit-title"
@@ -339,7 +356,7 @@ export function AddPapersPanel({
           </div>
           <div>
             <label className={labelClass} htmlFor="edit-category">
-              Folder
+              {t('Folder')}
             </label>
             <input
               id="edit-category"
@@ -352,13 +369,13 @@ export function AddPapersPanel({
           </div>
           <div>
             <label className={labelClass} htmlFor="edit-tags">
-              Tags (comma separated)
+              {t('Tags (comma separated)')}
             </label>
             <input
               id="edit-tags"
               value={editTags}
               onChange={(event) => setEditTags(event.target.value)}
-              placeholder="Shift 1, 2023, Solutions"
+              placeholder={t('Shift 1, 2023, Solutions')}
               className={field}
             />
           </div>
@@ -372,7 +389,7 @@ export function AddPapersPanel({
           />
           <div>
             <label className={labelClass} htmlFor="edit-key-link">
-              Answer key link (optional)
+              {t('Answer key link (optional)')}
             </label>
             <input
               id="edit-key-link"
@@ -383,8 +400,9 @@ export function AddPapersPanel({
               className={field}
             />
             <p className="mt-1 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
-              Paste the answer key PDF's Drive link. It needs no folder, title or tags —
-              the paper's green “Answer key” button opens it.
+              {t(
+                "Paste the answer key PDF's Drive link. It needs no folder, title or tags — the paper's green “Answer key” button opens it.",
+              )}
             </p>
             {editLibraryCheck.blocked && (
               <p className="mt-1 flex items-start gap-1.5 text-[11.5px] font-semibold text-brand-700 dark:text-brand-300">
@@ -400,16 +418,16 @@ export function AddPapersPanel({
             onUrlChange={setEditSourceUrl}
           />
           <p className="rounded-xl bg-ink-50 px-3 py-2 text-[11.5px] text-ink-500 dark:bg-ink-800/60 dark:text-ink-400">
-            Drive file id: <span className="font-mono">{editing.drive_file_id}</span>
+            {t('Drive file id:')} <span className="font-mono">{editing.drive_file_id}</span>
           </p>
           <FormError message={error} />
-          <Actions busy={busy} submitLabel="Save changes" onCancel={onClose} />
+          <Actions busy={busy} submitLabel={t('Save changes')} onCancel={onClose} />
         </form>
       ) : (
         <form onSubmit={submitAdd} className="space-y-3.5">
           <div>
             <label className={labelClass} htmlFor="links">
-              Drive links
+              {t('Drive links')}
             </label>
             <textarea
               id="links"
@@ -427,13 +445,14 @@ export function AddPapersPanel({
               className="w-full resize-y rounded-xl border border-ink-200 bg-white px-3 py-2.5 font-mono text-[12px] leading-relaxed text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/10 dark:border-ink-700 dark:bg-ink-800 dark:text-white dark:placeholder:text-ink-500"
             />
             <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
-              In Google Drive: right-click the PDF → Share → “Anyone with the link” → Copy
-              link. Folder links will not work.
+              {t(
+                'In Google Drive: right-click the PDF → Share → “Anyone with the link” → Copy link. Folder links will not work.',
+              )}
             </p>
             <p className="mt-1 text-[11.5px] leading-relaxed text-emerald-700 dark:text-emerald-400">
-              Got the answer key too? Paste it in the{' '}
-              <span className="font-semibold">Answer key</span> field under each row below,
-              or put it on the same line as a third part:{' '}
+              {t('Got the answer key too? Paste it in the')}{' '}
+              <span className="font-semibold">{t('Answer key')}</span>{' '}
+              {t('field under each row below, or put it on the same line as a third part:')}{' '}
               <span className="font-mono text-[11px]">
                 Title | paper link | answer key link
               </span>
@@ -443,7 +462,9 @@ export function AddPapersPanel({
           {effectiveRows.length > 0 && (
             <div className="space-y-2 rounded-2xl border border-ink-200 bg-ink-50/60 p-2.5 dark:border-ink-700 dark:bg-ink-800/40">
               <p className="px-0.5 text-[11px] font-semibold uppercase tracking-wider text-ink-400">
-                {effectiveRows.length} {effectiveRows.length === 1 ? 'link' : 'links'} found
+                {t(effectiveRows.length === 1 ? '{count} link found' : '{count} links found', {
+                  count: effectiveRows.length,
+                })}
               </p>
               {effectiveRows.map((row) => {
                 const duplicate = row.fileId ? idCounts[row.fileId] > 1 : false
@@ -465,13 +486,13 @@ export function AddPapersPanel({
                             [row.key]: event.target.value,
                           }))
                         }
-                        placeholder="Paper title (required)"
-                        aria-label="Paper title"
+                        placeholder={t('Paper title (required)')}
+                        aria-label={t('Paper title')}
                         className="h-8 min-w-0 flex-1 rounded-lg border border-ink-200 bg-white px-2 text-[12.5px] font-medium text-ink-900 placeholder:text-ink-400 focus:border-brand-400 focus:outline-none dark:border-ink-700 dark:bg-ink-800 dark:text-white"
                       />
                       <button
                         type="button"
-                        aria-label="Remove link"
+                        aria-label={t('Remove link')}
                         onClick={() => {
                           const remaining = effectiveRows
                             .filter((item) => item.key !== row.key)
@@ -499,8 +520,11 @@ export function AddPapersPanel({
                           : 'text-ink-400',
                       ].join(' ')}
                     >
-                      {row.error ??
-                        (duplicate ? 'Duplicate file in this batch' : row.fileId)}
+                      {row.error
+                        ? t(row.error)
+                        : duplicate
+                          ? t('Duplicate file in this batch')
+                          : row.fileId}
                     </p>
                     {row.library.blocked && (
                       <p className="mt-0.5 flex items-start gap-1 px-1 text-[10.5px] font-semibold text-brand-700 dark:text-brand-300">
@@ -524,8 +548,8 @@ export function AddPapersPanel({
                               [row.key]: event.target.value,
                             }))
                           }
-                          placeholder="Answer key Drive link (optional)"
-                          aria-label="Answer key Drive link"
+                          placeholder={t('Answer key Drive link (optional)')}
+                          aria-label={t('Answer key Drive link')}
                           spellCheck={false}
                           className={[
                             'h-7 min-w-0 flex-1 rounded-lg border px-2 font-mono text-[10.5px] text-ink-800 placeholder:font-sans placeholder:text-ink-400 focus:outline-none focus:ring-2 dark:bg-ink-800 dark:text-ink-100',
@@ -539,7 +563,7 @@ export function AddPapersPanel({
                         {row.answerLink && (
                           <button
                             type="button"
-                            aria-label="Remove answer key"
+                            aria-label={t('Remove answer key')}
                             onClick={() =>
                               setKeyOverrides((current) => ({ ...current, [row.key]: '' }))
                             }
@@ -551,12 +575,13 @@ export function AddPapersPanel({
                       </div>
                       {row.answerError ? (
                         <p className="mt-0.5 px-1 text-[10.5px] font-medium text-brand-600 dark:text-brand-300">
-                          {row.answerError}
+                          {t(row.answerError)}
                         </p>
                       ) : row.answerFileId ? (
                         <p className="mt-0.5 px-1 text-[10.5px] font-medium text-emerald-700 dark:text-emerald-400">
-                          ✓ Answer key attached — students open it from this paper's green
-                          “Answer key” button. No extra card, folder, title or tags.
+                          {t(
+                            "✓ Answer key attached — students open it from this paper's green “Answer key” button. No extra card, folder, title or tags.",
+                          )}
                         </p>
                       ) : null}
                     </div>
@@ -569,7 +594,7 @@ export function AddPapersPanel({
           <div className="grid gap-2.5 sm:grid-cols-2">
             <div>
               <label className={labelClass} htmlFor="category">
-                Folder
+                {t('Folder')}
               </label>
               <input
                 id="category"
@@ -582,13 +607,13 @@ export function AddPapersPanel({
             </div>
             <div>
               <label className={labelClass} htmlFor="tags">
-                Tags
+                {t('Tags')}
               </label>
               <input
                 id="tags"
                 value={tags}
                 onChange={(event) => setTags(event.target.value)}
-                placeholder="Shift 1, 2023"
+                placeholder={t('Shift 1, 2023')}
                 className={field}
               />
             </div>
@@ -625,16 +650,19 @@ export function AddPapersPanel({
                 className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-amber-300 accent-amber-600"
               />
               <span>
-                {softDuplicates.length === 1
-                  ? 'One title matches a paper already in the library.'
-                  : `${softDuplicates.length} titles match papers already in the library.`}{' '}
-                Add them anyway.
+                {t(
+                  softDuplicates.length === 1
+                    ? 'One title matches a paper already in the library.'
+                    : '{count} titles match papers already in the library.',
+                  { count: softDuplicates.length },
+                )}{' '}
+                {t('Add them anyway.')}
               </span>
             </label>
           )}
 
           <FormError message={error} />
-          <Actions busy={busy} submitLabel="Add to library" onCancel={onClose} />
+          <Actions busy={busy} submitLabel={t('Add to library')} onCancel={onClose} />
         </form>
       )}
     </Modal>
@@ -656,12 +684,13 @@ function ExamFields({
   onShift: (value: string) => void
   autoHint: boolean
 }) {
+  const { t } = useI18n()
   return (
     <div className="grid gap-2.5 sm:grid-cols-2">
       <div>
         <label className={labelClass} htmlFor={`${idPrefix}-year`}>
-          Exam year{' '}
-          <span className="font-normal text-ink-400 dark:text-ink-500">(optional)</span>
+          {t('Exam year')}{' '}
+          <span className="font-normal text-ink-400 dark:text-ink-500">{t('(optional)')}</span>
         </label>
         <input
           id={`${idPrefix}-year`}
@@ -671,13 +700,13 @@ function ExamFields({
           max={2100}
           value={year}
           onChange={(event) => onYear(event.target.value.slice(0, 4))}
-          placeholder={autoHint ? 'Read from the title' : 'Not set'}
+          placeholder={autoHint ? t('Read from the title') : t('Not set')}
           className={field}
         />
       </div>
       <div>
         <label className={labelClass} htmlFor={`${idPrefix}-shift`}>
-          Shift
+          {t('Shift')}
         </label>
         <select
           id={`${idPrefix}-shift`}
@@ -685,17 +714,18 @@ function ExamFields({
           onChange={(event) => onShift(event.target.value)}
           className={field}
         >
-          <option value="">{autoHint ? 'Read from the title' : 'No shift'}</option>
-          <option value="1">Shift 1</option>
-          <option value="2">Shift 2</option>
-          <option value="3">Shift 3</option>
-          <option value="4">Shift 4</option>
+          <option value="">{autoHint ? t('Read from the title') : t('No shift')}</option>
+          <option value="1">{t('Shift 1')}</option>
+          <option value="2">{t('Shift 2')}</option>
+          <option value="3">{t('Shift 3')}</option>
+          <option value="4">{t('Shift 4')}</option>
         </select>
       </div>
       {autoHint && (
         <p className="text-[11.5px] leading-relaxed text-ink-400 sm:col-span-2 dark:text-ink-500">
-          Leave both blank and the year and shift are picked out of titles like
-          “07 Nov 2025 Shift 2”. Fill them in only when the title does not say.
+          {t(
+            'Leave both blank and the year and shift are picked out of titles like “07 Nov 2025 Shift 2”. Fill them in only when the title does not say.',
+          )}
         </p>
       )}
     </div>
@@ -713,9 +743,12 @@ function SourceFields({
   onTypeChange: (value: SourceType) => void
   onUrlChange: (value: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="rounded-xl border border-ink-200 p-2.5 dark:border-ink-700">
-      <p className="mb-2 text-[12px] font-semibold text-ink-600 dark:text-ink-300">Source</p>
+      <p className="mb-2 text-[12px] font-semibold text-ink-600 dark:text-ink-300">
+        {t('Source')}
+      </p>
       <div className="grid grid-cols-2 gap-1.5">
         {(
           [
@@ -734,7 +767,7 @@ function SourceFields({
                 : 'border-ink-200 text-ink-500 hover:border-ink-300 dark:border-ink-700 dark:text-ink-400',
             ].join(' ')}
           >
-            {option.label}
+            {t(option.label)}
           </button>
         ))}
       </div>
@@ -743,7 +776,7 @@ function SourceFields({
           value={url}
           onChange={(event) => onUrlChange(event.target.value)}
           placeholder="https://esb.mp.gov.in/…"
-          aria-label="Official source link"
+          aria-label={t('Official source link')}
           className={`${field} mt-2`}
         />
       )}
@@ -769,6 +802,7 @@ function Actions({
   submitLabel: string
   onCancel: () => void
 }) {
+  const { t } = useI18n()
   return (
     <div className="flex gap-2 pt-1">
       <button
@@ -777,7 +811,7 @@ function Actions({
         disabled={busy}
         className="h-10 flex-1 rounded-xl border border-ink-200 bg-white text-[13.5px] font-semibold text-ink-700 transition hover:bg-ink-50 disabled:opacity-60 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
       >
-        Cancel
+        {t('Cancel')}
       </button>
       <button
         type="submit"

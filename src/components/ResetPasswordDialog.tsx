@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useI18n } from '../hooks/useI18n'
 import { Modal } from './Modal'
 import { AlertIcon, LoaderIcon, LockIcon } from './Icons'
 
@@ -18,6 +19,7 @@ export function ResetPasswordDialog({
   onSave,
   onSuccess,
 }: ResetPasswordDialogProps) {
+  const { t } = useI18n()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
@@ -27,22 +29,22 @@ export function ResetPasswordDialog({
     event.preventDefault()
     setError(null)
     if (password.length < 6) {
-      setError('Use at least 6 characters.')
+      setError(t('Use at least 6 characters.'))
       return
     }
     if (password !== confirm) {
-      setError('The two passwords do not match.')
+      setError(t('The two passwords do not match.'))
       return
     }
     setBusy(true)
     try {
       await onSave(password)
-      onSuccess('Password updated — you are signed in.')
+      onSuccess(t('Password updated — you are signed in.'))
       setPassword('')
       setConfirm('')
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not update the password.')
+      setError(caught instanceof Error ? caught.message : t('Could not update the password.'))
     } finally {
       setBusy(false)
     }
@@ -52,14 +54,14 @@ export function ResetPasswordDialog({
     <Modal
       open={open}
       onClose={onClose}
-      title="Choose a new password"
-      description="You opened a password reset link. Set a new password for your account."
+      title={t('Choose a new password')}
+      description={t('You opened a password reset link. Set a new password for your account.')}
       icon={<LockIcon className="h-4 w-4" />}
     >
       <form onSubmit={submit} className="space-y-2.5">
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            New password
+            {t('New password')}
           </span>
           <input
             type="password"
@@ -74,7 +76,7 @@ export function ResetPasswordDialog({
         </label>
         <label className="block">
           <span className="mb-1 block text-[12px] font-semibold text-ink-600 dark:text-ink-300">
-            Repeat password
+            {t('Repeat password')}
           </span>
           <input
             type="password"
@@ -83,7 +85,7 @@ export function ResetPasswordDialog({
             minLength={6}
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
-            placeholder="Type it again"
+            placeholder={t('Type it again')}
             className={inputClass}
           />
         </label>
@@ -100,7 +102,7 @@ export function ResetPasswordDialog({
           className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 text-[14px] font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
         >
           {busy && <LoaderIcon className="h-4 w-4" />}
-          Save new password
+          {t('Save new password')}
         </button>
       </form>
     </Modal>

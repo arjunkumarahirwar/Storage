@@ -1,3 +1,4 @@
+import { useI18n } from '../hooks/useI18n'
 import { driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
 import type { Paper } from '../lib/types'
@@ -20,17 +21,18 @@ const isFresh = (iso: string) => {
  * whatever order the administrator has arranged the main list in.
  */
 export function RecentStrip({ papers, newCount }: RecentStripProps) {
+  const { t } = useI18n()
   if (!papers.length) return null
 
   return (
-    <section className="mt-4" aria-label="Recently added papers">
+    <section className="mt-4" aria-label={t('Recently added papers')}>
       <div className="mb-1.5 flex items-center gap-2">
         <h2 className="text-[10.5px] font-bold uppercase tracking-[0.12em] text-ink-400 dark:text-ink-500">
-          Recently added
+          {t('Recently added')}
         </h2>
         {newCount > 0 && (
           <span className="rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-            {newCount} new
+            {t('{count} new', { count: newCount })}
           </span>
         )}
       </div>
@@ -65,7 +67,7 @@ export function RecentStrip({ papers, newCount }: RecentStripProps) {
               {paper.title}
             </p>
             <p className="mt-auto text-[10.5px] text-ink-400 dark:text-ink-500">
-              {formatDate(paper.created_at)}
+              {t('Added {date}', { date: formatDate(paper.created_at) })}
             </p>
           </a>
         ))}
