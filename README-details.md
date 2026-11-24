@@ -27,8 +27,8 @@ https://mppolicepyqs.vercel.app
 - Pick a folder, tags and source (Official ESB page + link, or Own work)
 - Edit and delete buttons on every card
 - A small rail on every card: **drag the ⠿ grip, or tap ↑ / ↓**, to set the order everybody sees
-- An **Answer key** picker in the edit form: link a paper to its solution PDF
 - A **Problem reports** inbox in the avatar menu, with a badge for open reports
+- An **Answer key link** box in the edit form: paste a key's Drive link, no card needed
 
 ## First-time admin login
 
@@ -57,30 +57,29 @@ Two things to know:
 
 ## Answer keys
 
-Every paper can point at its own answer key, so a student never has to hunt for it. The
-key is either a file attached to the paper (the normal case — no card of its own) or a
-separate solution card, which is how the first 15 pairs were built.
+Every paper can carry its own answer key, so a student never has to hunt for it. The key
+is **a Drive file attached to the paper row** (`papers.solution_file_id`) — it has no
+card, no folder and no title of its own, and it never appears in the list.
 
-1. Open the solution card → **Edit** → **Answer key (optional)** → choose the paper it
-   belongs to. (Or edit the *paper* and pick its solution — the two cards are linked
-   either way.)
-2. The paper's card then shows a green **Answer key** pill next to its folder chip.
-   Tapping it opens the solution in the Google Drive viewer, exactly like **Open**.
-3. The solution card shows a grey **Question paper** pill that goes back the other way.
+1. The paper's card shows a green **Answer key** pill next to its folder chip. Tapping it
+   opens the key PDF in the Google Drive viewer, exactly like **Open**.
+2. To attach, change or remove a key later: **Edit** on the paper → **Answer key link** →
+   paste the Drive link (or clear the box).
+3. To attach it while uploading: paste it in the *Answer key Drive link* field under each
+   row of **Add PDFs**, or as a third pipe part —
+   `Title | paper link | answer key link`. See [Adding papers](#adding-papers).
 
 Notes:
 
-- **Automatic linking:** when a new PDF is titled `… Solution` and a paper with the same
-  title (minus the word "Solution") exists, the link is created for you. All 15 existing
-  pairs are already linked this way.
-- **Attach at upload time:** in *Add PDFs* you can paste the key as a third pipe part or
-  tap **Attach answer key** on a row — see [Adding papers](#adding-papers).
-- **Searching** `answer key` now finds the papers that have one; `question paper` finds
-  the matching solutions.
-- **Deleting** either side is safe — `on delete set null` clears the link, so you never
-  get a button pointing at a deleted row.
-- The solution is stored as its own row (`papers.solution_paper_id` points at it), so it
-  keeps its own title, folder, tags and Drive file. No files are duplicated.
+- **Searching** `answer key` finds the papers that have one.
+- **One row per PDF.** The key shares the paper's row, so there is nothing extra to
+  title, no folder chip for it, and no tags. Deleting the paper deletes the reference.
+- **The old solution cards are gone.** The 15 pairs that used to be separate cards in
+  *MP Police Constable 2025 Solutions* were folded into their papers — those papers now
+  open their key from the green pill, and the folder no longer exists.
+- `papers.solution_paper_id` still exists for a card-style link (a PDF titled
+  `… Solution` uploaded on its own is still auto-linked to the paper of the same name),
+  but the app no longer offers a picker for it.
 
 ## Report a problem
 
@@ -244,10 +243,10 @@ What gets saved:
   that row.
 - The toast counts both: *“1 paper with an answer key added to the library.”*
 
-The 15 older pairs that have their own **solution card** keep working exactly as before:
-those papers' green button opens the card's PDF. You can still point a paper at an
-existing card from *Edit paper → …or link a solution card already in the library*; the
-two options are mutually exclusive.
+The old card-style pairs are gone: the 15 solution cards were folded into their papers
+by moving each card's file id into `solution_file_id` and deleting the card row. Nothing
+about those papers' green button changed — it still opens the same PDF. The
+*MP Police Constable 2025 Solutions* folder disappeared with the cards.
 
 ## Arranging the order
 
@@ -319,7 +318,7 @@ policies and the admin check). It is already applied to the live project.
 
 | Table | Purpose |
 | --- | --- |
-| `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source, `exam_year`, `exam_shift`, `solution_paper_id` |
+| `papers` | One row per PDF: title, `drive_file_id`, folder, tags, source, `exam_year`, `exam_shift`, `solution_file_id` (its answer key) |
 | `paper_progress` | `(user_id, paper_id)` rows — each student's Done marks |
 | `profiles` | One row per account: username + avatar URL |
 | `paper_reports` | Student-submitted problem notes (reason, details, status) |

@@ -931,7 +931,6 @@ export default function App() {
         }}
         categories={categories.map((entry) => entry.name)}
         editing={editing}
-        papers={papers}
         onCreate={addPapers}
         onUpdate={updatePaper}
         onToast={push}

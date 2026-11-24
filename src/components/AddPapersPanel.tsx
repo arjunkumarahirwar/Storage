@@ -19,8 +19,6 @@ interface AddPapersPanelProps {
   onClose: () => void
   categories: string[]
   editing: Paper | null
-  /** Whole library, used to offer "answer key" choices while editing. */
-  papers: Paper[]
   onCreate: (rows: NewPaper[]) => Promise<AddResult>
   onUpdate: (id: string, patch: Partial<NewPaper>) => Promise<void>
   onToast: (message: string, tone: 'success' | 'error' | 'info') => void
@@ -47,7 +45,6 @@ export function AddPapersPanel({
   onClose,
   categories,
   editing,
-  papers,
   onCreate,
   onUpdate,
   onToast,
@@ -71,18 +68,9 @@ export function AddPapersPanel({
   const [editTags, setEditTags] = useState('')
   const [editSourceType, setEditSourceType] = useState<SourceType>('own')
   const [editSourceUrl, setEditSourceUrl] = useState('')
-  const [editSolutionId, setEditSolutionId] = useState('')
   const [editKeyLink, setEditKeyLink] = useState('')
   const [editYear, setEditYear] = useState('')
   const [editShift, setEditShift] = useState('')
-
-  const answerKeyChoices = useMemo(() => {
-    if (!editing) return []
-    return papers
-      .filter((paper) => paper.id !== editing.id)
-      .slice()
-      .sort((a, b) => a.title.localeCompare(b.title))
-  }, [papers, editing])
 
   useEffect(() => {
     if (!open) return
@@ -93,7 +81,6 @@ export function AddPapersPanel({
       setEditTags(editing.tags.join(', '))
       setEditSourceType(editing.source_type)
       setEditSourceUrl(editing.source_url ?? '')
-      setEditSolutionId(editing.solution_paper_id ?? '')
       setEditKeyLink(
         editing.solution_file_id ? driveViewUrl(editing.solution_file_id) : '',
       )
@@ -274,7 +261,8 @@ export function AddPapersPanel({
         source_type: editSourceType,
         source_url: editSourceType === 'official' ? editSourceUrl.trim() : null,
         solution_file_id: parsedKey.fileId ?? null,
-        solution_paper_id: parsedKey.fileId ? null : editSolutionId || null,
+        // Attaching a link in the form retires any older card-based link.
+        ...(parsedKey.fileId ? { solution_paper_id: null } : {}),
         exam_year: editYear ? Number(editYear) : null,
         exam_shift: editShift ? Number(editShift) : null,
       })
@@ -354,10 +342,7 @@ export function AddPapersPanel({
             <input
               id="edit-key-link"
               value={editKeyLink}
-              onChange={(event) => {
-                setEditKeyLink(event.target.value)
-                if (event.target.value.trim()) setEditSolutionId('')
-              }}
+              onChange={(event) => setEditKeyLink(event.target.value)}
               placeholder="https://drive.google.com/file/d/…"
               spellCheck={false}
               className={field}
@@ -367,27 +352,7 @@ export function AddPapersPanel({
               the paper's green “Answer key” button opens it.
             </p>
           </div>
-          <div>
-            <label className={labelClass} htmlFor="edit-solution">
-              …or link a solution card already in the library
-            </label>
-            <select
-              id="edit-solution"
-              value={editSolutionId}
-              onChange={(event) => {
-                setEditSolutionId(event.target.value)
-                if (event.target.value) setEditKeyLink('')
-              }}
-              className={field}
-            >
-              <option value="">No answer key</option>
-              {answerKeyChoices.map((paper) => (
-                <option key={paper.id} value={paper.id}>
-                  {paper.title}
-                </option>
-              ))}
-            </select>
-          </div>
+
           <SourceFields
             type={editSourceType}
             url={editSourceUrl}
