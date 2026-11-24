@@ -43,6 +43,20 @@ try {
   check('clamp: decimals round', c.clampMinutes(59.6) === 60)
   check('clamp: rubbish becomes the default', c.clampMinutes('abc') === 120)
 
+  // ---- the −5 / +5 stepper --------------------------------------------
+  check('step: 120 − 5 is 115', c.stepMinutes(120, -5) === 115)
+  check('step: 115 − 5 is 110', c.stepMinutes(115, -5) === 110)
+  check('step: 5 − 5 stays at 5', c.stepMinutes(5, -5) === 5)
+  check('step: 300 + 5 stays at 300', c.stepMinutes(300, 5) === 300)
+  check('step: 30 + 5 is 35', c.stepMinutes(30, 5) === 35)
+  check('step: a typed 117 snaps to 115', c.stepMinutes(117, 0) === 115)
+  check('step: a typed 118 snaps to 120', c.stepMinutes(118, 0) === 120)
+  check('step: snap keeps 5', c.snapMinutes(7) === 5)
+  check('step: snap keeps 300', c.snapMinutes(298) === 300)
+  check('step: every stop is a multiple of five', [120, 115, 110, 105, 100].every(
+    (value) => c.stepMinutes(value, -5) % 5 === 0,
+  ))
+
   // ---- counting down ---------------------------------------------------
   const start = 1_700_000_000_000
   const run = { startedAt: start, minutes: 120 }

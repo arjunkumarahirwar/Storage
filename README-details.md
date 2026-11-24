@@ -187,8 +187,10 @@ for example) are shown as the server wrote them.
 Both live on each card, in the small link row under the buttons.
 
 **Practice** — tap *Practice* and the clock appears. It counts **down**, like the real
-exam: the student picks how long they get (30 / 60 / 90 / 120 minutes, or any number from
-5 to 300) and **120 minutes is the default**. *Start & open paper* starts the clock and opens
+exam: the student picks how long they get — quick chips for 30 / 60 / 90 / 120 minutes, a
+**−5 / +5** stepper to walk to any other multiple of five (115, 110, …), or a number typed
+into the box, which snaps to the nearest five when it loses focus. Five minutes at the
+shortest, five hours at the longest, and **120 minutes is the default**. *Start & open paper* starts the clock and opens
 the PDF in Drive; the countdown also sits in the bottom-left corner of the site, so it keeps
 running while the student reads or scrolls, and turns amber under five minutes and red at
 zero. When it reaches zero a **bell rings** (three double beeps, made with the Web Audio
@@ -200,7 +202,8 @@ each removable. Nothing is enforced — it is a self-timed record, which is what
 without an account. A run that went past the bell is saved as the full time allowed.
 
 **Who sets the default.** The administrator only. Inside the Practice dialog, signed in as
-the admin, there is a *Default for everyone* box: type the minutes and *Save default*. It is
+the admin, there is a *Default for everyone* box with the same −5 / +5 stepper: set the
+minutes and *Save default*. It is
 stored in the `app_settings` table (`practice_default_minutes`), so every student starts
 there, and the row is writable only under the admin policy — a student who tries to change
 it through the API is refused by RLS. The last value read is also kept on the device, so the

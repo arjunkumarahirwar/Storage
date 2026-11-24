@@ -192,6 +192,8 @@ const hi: Record<string, string> = {
   'Enter score': 'अंक डालें',
   'Enter your score': 'अपने अंक डालें',
   'Time allowed': 'कितना समय',
+  'Five minutes less': 'पाँच मिनट कम',
+  'Five minutes more': 'पाँच मिनट ज़्यादा',
   min: 'मिनट',
   Minutes: 'मिनट',
   'Default for everyone': 'सबके लिए डिफ़ॉल्ट',

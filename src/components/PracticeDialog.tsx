@@ -6,8 +6,11 @@ import { classNames, formatClock, formatDate, formatDuration } from '../lib/form
 import { driveViewUrl } from '../lib/drive'
 import {
   MAX_PRACTICE_MINUTES,
+  MINUTE_STEP,
   MIN_PRACTICE_MINUTES,
   clampMinutes,
+  snapMinutes,
+  stepMinutes,
 } from '../lib/countdown'
 import type { Paper, PracticeAttempt } from '../lib/types'
 
@@ -78,21 +81,22 @@ export function PracticeDialog({
     setScoring(false)
     setScore('')
     setTotal('100')
-    setMinutes(String(defaultMinutes))
-    setDefaultDraft(String(defaultMinutes))
+    setMinutes(String(snapMinutes(defaultMinutes)))
+    setDefaultDraft(String(snapMinutes(defaultMinutes)))
     setError(null)
   }, [open, paper?.id, defaultMinutes])
 
   const thisPaperRunning = Boolean(paper && runningPaperId === paper.id)
   const otherPaperRunning = Boolean(runningPaperId && !thisPaperRunning)
   const chosenMinutes = clampMinutes(Number(minutes))
+  const draftMinutes = snapMinutes(Number(defaultDraft))
 
   const saveDefault = async (event: React.FormEvent) => {
     event.preventDefault()
     setSavingDefault(true)
     setError(null)
     try {
-      const safe = clampMinutes(Number(defaultDraft))
+      const safe = snapMinutes(Number(defaultDraft))
       await onSaveDefault(safe)
       setDefaultDraft(String(safe))
       setMinutes(String(safe))
@@ -338,20 +342,43 @@ export function PracticeDialog({
                     {option} {t('min')}
                   </button>
                 ))}
-                <label className="flex h-9 items-center gap-1 rounded-xl border border-ink-200 px-2 dark:border-ink-700">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={MIN_PRACTICE_MINUTES}
-                    max={MAX_PRACTICE_MINUTES}
-                    value={minutes}
-                    onChange={(event) => setMinutes(event.target.value.slice(0, 3))}
-                    onBlur={() => setMinutes(String(chosenMinutes))}
-                    aria-label={t('Minutes')}
-                    className="w-14 bg-transparent text-[13px] font-semibold text-ink-900 outline-none dark:text-white"
-                  />
-                  <span className="text-[11.5px] text-ink-400 dark:text-ink-500">{t('min')}</span>
-                </label>
+                <div className="flex h-9 items-center gap-0.5 rounded-xl border border-ink-200 px-1 dark:border-ink-700">
+                  <button
+                    type="button"
+                    onClick={() => setMinutes(String(stepMinutes(chosenMinutes, -MINUTE_STEP)))}
+                    disabled={chosenMinutes <= MIN_PRACTICE_MINUTES}
+                    aria-label={t('Five minutes less')}
+                    title={t('Five minutes less')}
+                    className="grid h-7 w-9 place-items-center rounded-lg text-[12px] font-bold text-ink-600 transition hover:bg-ink-100 disabled:opacity-30 dark:text-ink-300 dark:hover:bg-ink-800"
+                  >
+                    −5
+                  </button>
+                  <label className="flex items-center gap-1 px-0.5">
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      step={MINUTE_STEP}
+                      min={MIN_PRACTICE_MINUTES}
+                      max={MAX_PRACTICE_MINUTES}
+                      value={minutes}
+                      onChange={(event) => setMinutes(event.target.value.slice(0, 3))}
+                      onBlur={() => setMinutes(String(snapMinutes(chosenMinutes)))}
+                      aria-label={t('Minutes')}
+                      className="w-11 bg-transparent text-center text-[13px] font-semibold text-ink-900 outline-none dark:text-white"
+                    />
+                    <span className="text-[11.5px] text-ink-400 dark:text-ink-500">{t('min')}</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setMinutes(String(stepMinutes(chosenMinutes, MINUTE_STEP)))}
+                    disabled={chosenMinutes >= MAX_PRACTICE_MINUTES}
+                    aria-label={t('Five minutes more')}
+                    title={t('Five minutes more')}
+                    className="grid h-7 w-9 place-items-center rounded-lg text-[12px] font-bold text-ink-600 transition hover:bg-ink-100 disabled:opacity-30 dark:text-ink-300 dark:hover:bg-ink-800"
+                  >
+                    +5
+                  </button>
+                </div>
               </div>
               {error && (
                 <p className="mt-1.5 rounded-xl bg-brand-50 px-2.5 py-2 text-[12.5px] font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-300">
@@ -367,16 +394,44 @@ export function PracticeDialog({
                     {t('Default for everyone')}
                   </p>
                   <div className="mt-1 flex items-center gap-1.5">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={MIN_PRACTICE_MINUTES}
-                      max={MAX_PRACTICE_MINUTES}
-                      value={defaultDraft}
-                      onChange={(event) => setDefaultDraft(event.target.value.slice(0, 3))}
-                      aria-label={t('Default minutes')}
-                      className="h-9 w-16 rounded-lg border border-ink-200 bg-white px-2 text-[13px] font-semibold text-ink-900 outline-none focus:border-brand-400 dark:border-ink-700 dark:bg-ink-800 dark:text-white"
-                    />
+                    <div className="flex items-center gap-0.5 rounded-lg border border-ink-200 px-1 dark:border-ink-700">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDefaultDraft(
+                            String(stepMinutes(draftMinutes, -MINUTE_STEP)),
+                          )
+                        }
+                        disabled={draftMinutes <= MIN_PRACTICE_MINUTES}
+                        aria-label={t('Five minutes less')}
+                        className="grid h-7 w-9 place-items-center rounded-md text-[12px] font-bold text-ink-600 transition hover:bg-ink-100 disabled:opacity-30 dark:text-ink-300 dark:hover:bg-ink-800"
+                      >
+                        −5
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        step={MINUTE_STEP}
+                        min={MIN_PRACTICE_MINUTES}
+                        max={MAX_PRACTICE_MINUTES}
+                        value={defaultDraft}
+                        onChange={(event) => setDefaultDraft(event.target.value.slice(0, 3))}
+                        onBlur={() => setDefaultDraft(String(draftMinutes))}
+                        aria-label={t('Default minutes')}
+                        className="h-8 w-11 bg-transparent text-center text-[13px] font-semibold text-ink-900 outline-none dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDefaultDraft(String(stepMinutes(draftMinutes, MINUTE_STEP)))
+                        }
+                        disabled={draftMinutes >= MAX_PRACTICE_MINUTES}
+                        aria-label={t('Five minutes more')}
+                        className="grid h-7 w-9 place-items-center rounded-md text-[12px] font-bold text-ink-600 transition hover:bg-ink-100 disabled:opacity-30 dark:text-ink-300 dark:hover:bg-ink-800"
+                      >
+                        +5
+                      </button>
+                    </div>
                     <span className="text-[11.5px] text-ink-400 dark:text-ink-500">{t('min')}</span>
                     <button
                       type="submit"

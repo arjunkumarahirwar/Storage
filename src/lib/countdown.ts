@@ -22,6 +22,19 @@ export const clampMinutes = (value: number | string | null | undefined): number 
   return Math.min(MAX_PRACTICE_MINUTES, Math.max(MIN_PRACTICE_MINUTES, Math.round(minutes)))
 }
 
+/** The stepper moves in fives: 120 → 115 → 110 … */
+export const MINUTE_STEP = 5
+
+/** Rounds to the nearest five minutes, inside the limits. */
+export const snapMinutes = (value: number | string | null | undefined): number =>
+  clampMinutes(Math.round(clampMinutes(value) / MINUTE_STEP) * MINUTE_STEP)
+
+/** One tap of −5 or +5. Always lands on a multiple of five. */
+export const stepMinutes = (
+  value: number | string | null | undefined,
+  delta: number,
+): number => clampMinutes(snapMinutes(value) + delta)
+
 export interface TimedRun {
   /** `Date.now()` when the candidate tapped start. */
   startedAt: number
