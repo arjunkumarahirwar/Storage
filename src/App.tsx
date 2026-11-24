@@ -10,8 +10,17 @@ import { FilterTabs } from './components/FilterTabs'
 import { Footer } from './components/Footer'
 import { Header } from './components/Header'
 import { HeroCard } from './components/HeroCard'
-import { CopyIcon, DeviceIcon, GripIcon, PlusIcon, RefreshIcon } from './components/Icons'
+import {
+  ClockIcon,
+  CopyIcon,
+  DeviceIcon,
+  GripIcon,
+  PlusIcon,
+  RefreshIcon,
+} from './components/Icons'
+import { NotesDialog } from './components/NotesDialog'
 import { PaperCard } from './components/PaperCard'
+import { PracticeDialog } from './components/PracticeDialog'
 import { ProfileDialog } from './components/ProfileDialog'
 import { RecentStrip } from './components/RecentStrip'
 import { ReportDialog } from './components/ReportDialog'
@@ -21,11 +30,14 @@ import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
 import { usePapers } from './hooks/usePapers'
 import { useProfile } from './hooks/useProfile'
+import { useNotes } from './hooks/useNotes'
+import { usePractice } from './hooks/usePractice'
 import { useProgress } from './hooks/useProgress'
 import { useReports } from './hooks/useReports'
 import { useTheme } from './hooks/useTheme'
 import { useToasts } from './hooks/useToasts'
 import { driveViewUrl } from './lib/drive'
+import { formatClock } from './lib/format'
 import type { NewReport, Paper, ProgressFilter } from './lib/types'
 
 const listCards = () =>
@@ -113,6 +125,8 @@ export default function App() {
   const progress = useProgress(auth.session?.user.id ?? null)
   const { profile, needsSetup, saveProfile } = useProfile(auth.session?.user.id ?? null)
   const reports = useReports(auth.isAdmin)
+  const notes = useNotes(auth.session?.user.id ?? null)
+  const practice = usePractice(auth.session?.user.id ?? null)
 
   const initialFilters = useMemo(readFiltersFromUrl, [])
   const [query, setQuery] = useState(initialFilters.query)
@@ -121,6 +135,8 @@ export default function App() {
   const [year, setYear] = useState<number | null>(initialFilters.year)
   const [shift, setShift] = useState<number | null>(initialFilters.shift)
   const [reportTarget, setReportTarget] = useState<Paper | null>(null)
+  const [notesTarget, setNotesTarget] = useState<Paper | null>(null)
+  const [practiceTarget, setPracticeTarget] = useState<Paper | null>(null)
   const [reportsOpen, setReportsOpen] = useState(false)
   const [reportedIds, setReportedIds] = useState<Set<string>>(() => new Set(readReported()))
   const [authOpen, setAuthOpen] = useState(false)
@@ -567,6 +583,12 @@ export default function App() {
     }
   }, [loading, papers.length, category, categories, push])
 
+  // A timer left running on a paper that has since been deleted goes away.
+  useEffect(() => {
+    if (loading || !papers.length) return
+    if (practice.running && !papersById.has(practice.running.paperId)) practice.cancel()
+  }, [loading, papers.length, papersById, practice])
+
   const filtersActive =
     Boolean(query.trim()) ||
     category !== 'All' ||
@@ -847,8 +869,13 @@ export default function App() {
                       }
                     : undefined
                 }
+                note={notes.notes.get(paper.id)}
+                attempts={practice.attempts.get(paper.id)}
+                practiceRunning={practice.running?.paperId === paper.id}
                 onToggleDone={() => void progress.toggleDone(paper.id)}
                 onShare={() => void share(paper)}
+                onPractice={() => setPracticeTarget(paper)}
+                onNotes={() => setNotesTarget(paper)}
                 onReport={() => setReportTarget(paper)}
                 reported={reportedIds.has(paper.id)}
                 onEdit={() => openEdit(paper)}
@@ -965,6 +992,69 @@ export default function App() {
           setReportsOpen(false)
           openEdit(paper)
         }}
+      />
+
+      {practice.running && (
+        <div className="fixed bottom-5 left-4 z-40 flex items-center gap-1.5 rounded-full border border-brand-200 bg-white/95 py-1.5 pl-3 pr-1.5 shadow-lift backdrop-blur dark:border-brand-500/40 dark:bg-ink-900/95">
+          <ClockIcon className="h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-300" />
+          <span className="font-mono text-[12.5px] font-bold tabular-nums text-brand-700 dark:text-brand-300">
+            {formatClock(practice.elapsedMs)}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              const paper = papersById.get(practice.running?.paperId ?? '')
+              if (paper) setPracticeTarget(paper)
+            }}
+            className="rounded-full bg-brand-600 px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-700"
+          >
+            Finish
+          </button>
+        </div>
+      )}
+
+      <NotesDialog
+        open={notesTarget !== null}
+        paper={notesTarget}
+        entry={notesTarget ? notes.notes.get(notesTarget.id) : undefined}
+        onClose={() => setNotesTarget(null)}
+        onSave={notes.save}
+        onSuccess={push}
+      />
+
+      <PracticeDialog
+        open={practiceTarget !== null}
+        paper={practiceTarget}
+        runningPaperId={practice.running?.paperId ?? null}
+        runningTitle={
+          practice.running
+            ? (papersById.get(practice.running.paperId)?.title ?? null)
+            : null
+        }
+        elapsedMs={practice.elapsedMs}
+        attempts={
+          practiceTarget ? (practice.attempts.get(practiceTarget.id) ?? []) : []
+        }
+        onClose={() => setPracticeTarget(null)}
+        onStart={() => {
+          if (practiceTarget) practice.start(practiceTarget.id)
+        }}
+        onCancelTimer={practice.cancel}
+        onFinish={async (score, total) => {
+          await practice.finish(score, total)
+        }}
+        onRemoveAttempt={(id) => {
+          void practice
+            .remove(id)
+            .then(() => push('Attempt removed.', 'info'))
+            .catch((caught: unknown) =>
+              push(
+                caught instanceof Error ? caught.message : 'Could not remove that attempt.',
+                'error',
+              ),
+            )
+        }}
+        onSuccess={push}
       />
 
       <Toasts toasts={toasts} onDismiss={dismiss} />

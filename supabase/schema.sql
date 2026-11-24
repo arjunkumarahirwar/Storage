@@ -6,6 +6,8 @@
 -- paper_progress  one row per student per finished paper
 -- profiles        one row per person: username + avatar picture
 -- paper_reports   student-submitted "this link is broken / wrong file" notes
+-- paper_notes     one private note + difficulty rating per student per paper
+-- practice_attempts  one row per timed practice run (score + how long)
 -- avatars         public storage bucket holding those pictures
 -- ============================================================================
 
@@ -242,6 +244,55 @@ create index if not exists paper_reports_open_idx
   on public.paper_reports (created_at desc)
   where status = 'open';
 
+-- --------------------------------------------------------- paper_notes -----
+-- Private per student: their own note and an easy / medium / hard rating.
+create table if not exists public.paper_notes (
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  paper_id   uuid not null references public.papers (id) on delete cascade,
+  note       text not null default '',
+  difficulty text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, paper_id)
+);
+
+alter table public.paper_notes
+  drop constraint if exists paper_notes_note_check,
+  drop constraint if exists paper_notes_difficulty_check;
+
+alter table public.paper_notes
+  add constraint paper_notes_note_check check (char_length(note) <= 2000),
+  add constraint paper_notes_difficulty_check
+    check (difficulty is null or difficulty in ('easy', 'medium', 'hard'));
+
+create index if not exists paper_notes_paper_idx on public.paper_notes (paper_id);
+
+-- ---------------------------------------------------- practice_attempts -----
+-- One row per timed practice run. Guests keep theirs on the device and they are
+-- copied here on the first sign-in, like their Done marks.
+create table if not exists public.practice_attempts (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  paper_id   uuid not null references public.papers (id) on delete cascade,
+  seconds    integer not null,
+  score      integer not null,
+  total      integer not null default 100,
+  created_at timestamptz not null default now()
+);
+
+alter table public.practice_attempts
+  drop constraint if exists practice_seconds_check,
+  drop constraint if exists practice_score_check;
+
+alter table public.practice_attempts
+  add constraint practice_seconds_check check (seconds between 10 and 259200),
+  add constraint practice_score_check
+    check (total between 1 and 1000 and score between 0 and total);
+
+create index if not exists practice_attempts_user_idx
+  on public.practice_attempts (user_id, paper_id, created_at desc);
+create index if not exists practice_attempts_paper_idx on public.practice_attempts (paper_id);
+
 -- ------------------------------------------------------------ updated_at ----
 create or replace function public.touch_updated_at()
 returns trigger
@@ -261,6 +312,11 @@ create trigger papers_touch_updated_at
 drop trigger if exists profiles_touch_updated_at on public.profiles;
 create trigger profiles_touch_updated_at
   before update on public.profiles
+  for each row execute function public.touch_updated_at();
+
+drop trigger if exists paper_notes_touch_updated_at on public.paper_notes;
+create trigger paper_notes_touch_updated_at
+  before update on public.paper_notes
   for each row execute function public.touch_updated_at();
 
 -- --------------------------------------------------------- admin check ------
@@ -287,6 +343,8 @@ alter table public.papers enable row level security;
 alter table public.paper_progress enable row level security;
 alter table public.profiles enable row level security;
 alter table public.paper_reports enable row level security;
+alter table public.paper_notes enable row level security;
+alter table public.practice_attempts enable row level security;
 
 drop policy if exists "Anyone can read the library" on public.papers;
 create policy "Anyone can read the library"
@@ -389,6 +447,49 @@ create policy "Only the administrator deletes reports"
   to authenticated
   using ((select public.is_library_admin()));
 
+drop policy if exists "Read only your own notes" on public.paper_notes;
+create policy "Read only your own notes"
+  on public.paper_notes for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Create only your own notes" on public.paper_notes;
+create policy "Create only your own notes"
+  on public.paper_notes for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Update only your own notes" on public.paper_notes;
+create policy "Update only your own notes"
+  on public.paper_notes for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Delete only your own notes" on public.paper_notes;
+create policy "Delete only your own notes"
+  on public.paper_notes for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Read only your own attempts" on public.practice_attempts;
+create policy "Read only your own attempts"
+  on public.practice_attempts for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+drop policy if exists "Create only your own attempts" on public.practice_attempts;
+create policy "Create only your own attempts"
+  on public.practice_attempts for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Delete only your own attempts" on public.practice_attempts;
+create policy "Delete only your own attempts"
+  on public.practice_attempts for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
 -- ------------------------------------------------------- avatars (storage) --
 -- Public bucket; every person may only write inside their own <user-id>/ folder.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -426,6 +527,8 @@ grant insert, update on public.profiles to authenticated;
 -- Reporting is open to guests; reading and closing reports is admin-only (RLS).
 grant insert on public.paper_reports to anon, authenticated;
 grant select, update, delete on public.paper_reports to authenticated;
+grant select, insert, update, delete on public.paper_notes to authenticated;
+grant select, insert, delete on public.practice_attempts to authenticated;
 grant execute on function public.is_library_admin() to authenticated;
 revoke all on function public.reorder_papers(uuid[], integer[]) from public, anon;
 grant execute on function public.reorder_papers(uuid[], integer[]) to authenticated;

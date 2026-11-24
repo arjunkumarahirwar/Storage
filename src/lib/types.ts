@@ -50,6 +50,31 @@ export interface Profile {
 
 export type ProgressFilter = 'all' | 'open' | 'done'
 
+/** A student's private note and difficulty rating for one paper. */
+export type Difficulty = 'easy' | 'medium' | 'hard'
+
+export interface NoteEntry {
+  note: string
+  difficulty: Difficulty | null
+}
+
+export const DIFFICULTIES: { value: Difficulty; label: string; hint: string }[] = [
+  { value: 'easy', label: 'Easy', hint: 'Can do it quickly' },
+  { value: 'medium', label: 'Medium', hint: 'Needs some thought' },
+  { value: 'hard', label: 'Hard', hint: 'Revisit this one' },
+]
+
+/** One timed practice run, self-reported after reading the PDF. */
+export interface PracticeAttempt {
+  id: string
+  paperId: string
+  seconds: number
+  score: number
+  total: number
+  /** ISO timestamp. */
+  at: string
+}
+
 /** Why a student says a paper is wrong. Mirrors paper_reports_reason_check. */
 export type ReportReason =
   | 'link_broken'

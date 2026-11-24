@@ -1,10 +1,11 @@
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { driveDownloadUrl, driveViewUrl } from '../lib/drive'
 import { classNames, formatDate } from '../lib/format'
-import type { Paper } from '../lib/types'
+import type { NoteEntry, Paper, PracticeAttempt } from '../lib/types'
 import {
   AlertIcon,
   CheckIcon,
+  ClockIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   DownloadIcon,
@@ -12,6 +13,7 @@ import {
   FileIcon,
   GripIcon,
   LinkIcon,
+  NoteIcon,
   PencilIcon,
   ShareIcon,
   TrashIcon,
@@ -40,8 +42,15 @@ interface PaperCardProps {
   onMove?: (delta: -1 | 1) => void
   canMoveUp?: boolean
   canMoveDown?: boolean
+  /** This student's private note and rating, if they made one. */
+  note?: NoteEntry
+  /** This student's timed practice runs, newest first. */
+  attempts?: PracticeAttempt[]
+  practiceRunning?: boolean
   onToggleDone: () => void
   onShare: () => void
+  onPractice: () => void
+  onNotes: () => void
   onReport: () => void
   /** True once this student has already flagged this paper from this device. */
   reported?: boolean
@@ -65,8 +74,13 @@ export function PaperCard({
   onMove,
   canMoveUp = false,
   canMoveDown = false,
+  note,
+  attempts,
+  practiceRunning = false,
   onToggleDone,
   onShare,
+  onPractice,
+  onNotes,
   onReport,
   reported = false,
   onEdit,
@@ -202,6 +216,41 @@ export function PaperCard({
             <span className="rounded-md bg-ink-100 px-1.5 py-0.5 text-[11px] font-semibold text-ink-600 dark:bg-ink-800 dark:text-ink-300">
               {paper.category}
             </span>
+            {note?.difficulty && (
+              <span
+                title="Your difficulty rating"
+                className={classNames(
+                  'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-bold',
+                  note.difficulty === 'easy'
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300'
+                    : note.difficulty === 'hard'
+                      ? 'border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-500/40 dark:bg-brand-500/10 dark:text-brand-300'
+                      : 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300',
+                )}
+              >
+                <NoteIcon className="h-3 w-3" />
+                {note.difficulty === 'easy'
+                  ? 'Easy'
+                  : note.difficulty === 'hard'
+                    ? 'Hard'
+                    : 'Medium'}
+              </span>
+            )}
+            {practiceRunning && (
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300">
+                <ClockIcon className="h-3 w-3" /> Timer running
+              </span>
+            )}
+            {!practiceRunning && attempts && attempts.length > 0 && (
+              <span
+                title={`${attempts.length} timed attempt${attempts.length === 1 ? '' : 's'}`}
+                className="inline-flex items-center gap-1 rounded-md border border-ink-200 px-1.5 py-0.5 text-[11px] font-semibold text-ink-500 dark:border-ink-700 dark:text-ink-400"
+              >
+                <ClockIcon className="h-3 w-3" /> Best{' '}
+                {Math.max(...attempts.map((attempt) => attempt.score))}/
+                {attempts[0].total} · {attempts.length}×
+              </span>
+            )}
             {paper.tags.map((tag) => (
               <span
                 key={tag}
@@ -228,6 +277,29 @@ export function PaperCard({
             )}
             <span aria-hidden>·</span>
             <span>Added {formatDate(paper.created_at)}</span>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              onClick={onPractice}
+              title="Practise this paper against the clock"
+              className="inline-flex items-center gap-1 rounded font-semibold text-ink-400 underline decoration-dotted underline-offset-2 transition hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300"
+            >
+              <ClockIcon className="h-3 w-3" /> Practice
+            </button>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              onClick={onNotes}
+              title="Your private note and difficulty rating"
+              className={classNames(
+                'inline-flex items-center gap-1 rounded font-semibold underline decoration-dotted underline-offset-2 transition',
+                note?.note
+                  ? 'text-amber-600 dark:text-amber-400'
+                  : 'text-ink-400 hover:text-brand-600 dark:text-ink-500 dark:hover:text-brand-300',
+              )}
+            >
+              <NoteIcon className="h-3 w-3" /> Notes
+            </button>
             <span aria-hidden>·</span>
             <button
               type="button"

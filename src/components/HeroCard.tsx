@@ -87,6 +87,12 @@ export function HeroCard({ paperCount, doneCount, lastUpdated, isAdmin, onAdd }:
             aria-label="Papers completed"
           />
         </div>
+        <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
+          <span className="font-semibold text-ink-600 dark:text-ink-300">Practice</span> times a
+          paper with your score, and{' '}
+          <span className="font-semibold text-ink-600 dark:text-ink-300">Notes</span> keeps a
+          private note and an easy / medium / hard rating on each one.
+        </p>
       </div>
     </section>
   )

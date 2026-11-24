@@ -206,3 +206,18 @@ export const RefreshIcon = (props: IconProps) => (
     <path d="M20 20v-4.5h-4.5" />
   </svg>
 )
+
+export const ClockIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7.5V12l3 1.8" />
+  </svg>
+)
+
+export const NoteIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="M6 3.5h9L19 7.5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1Z" />
+    <path d="M14.5 3.7V8h4.2" />
+    <path d="M8.5 12.5h7M8.5 16h4.5" />
+  </svg>
+)

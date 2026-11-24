@@ -17,6 +17,11 @@ https://mppolicepyqs.vercel.app
 - **Report a problem** on every card — no account needed
 - Filtered lists are shareable: the search, folder and All/Not done/Done switch live in
   the address, and **Copy link** puts the whole view in WhatsApp
+- **Practice** on every card: start a timer, solve the paper in Drive, then enter your
+  score. The card keeps your best score and how many attempts you made, and the running
+  clock stays visible in the corner while you read the PDF
+- **Notes** on every card: a private note (up to 2000 characters) plus an easy / medium /
+  hard rating, shown as a coloured chip on the card
 - Progress bar for the visitor's own Done marks
 - Dark mode follows the phone setting (with a manual toggle)
 
@@ -80,6 +85,24 @@ Notes:
 - `papers.solution_paper_id` still exists for a card-style link (a PDF titled
   `… Solution` uploaded on its own is still auto-linked to the paper of the same name),
   but the app no longer offers a picker for it.
+
+## Practice and notes
+
+Both live on each card, in the small link row under the buttons.
+
+**Practice** — tap *Practice* → *Start & open paper*. The timer starts and the PDF opens in
+Drive; the clock also sits in the bottom-left corner of the site, so it keeps running while
+the student reads or scrolls. Tapping *Finish* asks for marks scored and out of how many
+(defaults to 100). The card then shows **Best 68/100 · 2×**, and the dialog lists the last
+five attempts with time taken and date, each removable. Nothing is enforced — it is a
+self-timed record, which is what makes it work without an account.
+
+**Notes** — tap *Notes* to pick Easy / Medium / Hard and write a note. The rating shows as a
+chip on the card; the note itself only opens in the dialog. Nobody else can see either, not
+even the admin.
+
+Guests keep both on the device. On first sign-in the device's notes and attempts are copied
+into the account (same pattern as the Done ticks), then the device copy is cleared.
 
 ## Report a problem
 
@@ -322,6 +345,8 @@ policies and the admin check). It is already applied to the live project.
 | `paper_progress` | `(user_id, paper_id)` rows — each student's Done marks |
 | `profiles` | One row per account: username + avatar URL |
 | `paper_reports` | Student-submitted problem notes (reason, details, status) |
+| `paper_notes` | `(user_id, paper_id)` — one private note + easy/medium/hard rating per paper per student |
+| `practice_attempts` | One row per timed run: `seconds`, `score`, `total`, `created_at` |
 
 Security model:
 
@@ -331,13 +356,20 @@ Security model:
   owner (`auth.uid() = id`); RLS is enabled on this table too
 - `paper_reports` — anyone may insert; only `is_library_admin()` may select, update or
   delete
-- Guests who never sign in keep Done marks in `localStorage`; they are merged into the
-  account on first sign-in.
+- `paper_notes` — select, insert, update and delete are restricted to `auth.uid() = user_id`
+- `practice_attempts` — select, insert and delete are restricted to `auth.uid() = user_id`
+  (attempts are never updated, so there is no update policy)
+- Guests who never sign in keep Done marks, notes and practice attempts in `localStorage`;
+  all three are merged into the account on first sign-in.
 
 ## Known limits
 
 - Drive files must be shared as *Anyone with the link can view*, with downloads on.
 - Very large PDFs can show a Google virus-scan warning before downloading.
+- Practice scores are self-reported. They are a personal record, not an exam result.
+- A practice timer lives on one device and in one tab; clearing site data clears it.
+- Notes and attempts only reach the account while signed in — a guest who later signs in
+  gets one merge, on that device.
 - Supabase's free tier pauses a project after ~a week without activity.
 - The administrator email is hard-coded in `is_library_admin()`; change it in the SQL
   function to hand the library to someone else.

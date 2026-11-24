@@ -8,8 +8,8 @@ export function Footer({ paperCount }: { paperCount: number }) {
       </p>
       <p className="mx-auto mt-2 max-w-md text-[11.5px] leading-relaxed text-ink-400 dark:text-ink-500">
         Not affiliated with MP ESB. Papers belong to their original publisher. Files stay in
-        Google Drive and open there; this site only stores titles, links and your own
-        progress.
+        Google Drive and open there; this site only stores titles, links, your progress,
+        your private notes and your practice scores.
       </p>
     </footer>
   )
