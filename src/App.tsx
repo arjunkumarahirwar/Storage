@@ -27,6 +27,7 @@ import { NotesDialog } from './components/NotesDialog'
 import { PaperCard } from './components/PaperCard'
 import { PracticeDialog } from './components/PracticeDialog'
 import { ProfileDialog } from './components/ProfileDialog'
+import { InstallCard, OfflineBar, UpdateBar } from './components/PwaNotices'
 import { RecentStrip } from './components/RecentStrip'
 import { ReportDialog } from './components/ReportDialog'
 import { ReportsDialog } from './components/ReportsDialog'
@@ -35,9 +36,10 @@ import { Toasts } from './components/Toasts'
 import { useAuth } from './hooks/useAuth'
 import { healthTargets, useLinkHealth } from './hooks/useLinkHealth'
 import { usePapers } from './hooks/usePapers'
-import { useProfile } from './hooks/useProfile'
 import { useNotes } from './hooks/useNotes'
 import { usePractice } from './hooks/usePractice'
+import { useProfile } from './hooks/useProfile'
+import { usePwa } from './hooks/usePwa'
 import { useProgress } from './hooks/useProgress'
 import { useReports } from './hooks/useReports'
 import { useTheme } from './hooks/useTheme'
@@ -136,6 +138,7 @@ export default function App() {
   const notes = useNotes(auth.session?.user.id ?? null)
   const practice = usePractice(auth.session?.user.id ?? null)
   const health = useLinkHealth()
+  const pwa = usePwa()
 
   const initialFilters = useMemo(readFiltersFromUrl, [])
   const [query, setQuery] = useState(initialFilters.query)
@@ -838,6 +841,10 @@ export default function App() {
 
       <main className="mx-auto w-full max-w-3xl px-4 pb-24 sm:px-6">
         <div className="pt-4">
+          {pwa.offline && <OfflineBar />}
+          {pwa.updateReady && (
+            <UpdateBar onRefresh={pwa.applyUpdate} onDismiss={pwa.dismissUpdate} />
+          )}
           <HeroCard
             paperCount={papers.length}
             doneCount={totalDone}
@@ -845,6 +852,13 @@ export default function App() {
             isAdmin={auth.isAdmin}
             onAdd={openAdd}
           />
+          {!pwa.installed && !pwa.dismissed && (pwa.canInstall || pwa.iosHint) && (
+            <InstallCard
+              iosHint={pwa.iosHint && !pwa.canInstall}
+              onInstall={pwa.promptInstall}
+              onDismiss={pwa.dismissInstall}
+            />
+          )}
         </div>
 
         {error && (

@@ -22,6 +22,8 @@ https://mppolicepyqs.vercel.app
   clock stays visible in the corner while you read the PDF
 - **Notes** on every card: a private note (up to 2000 characters) plus an easy / medium /
   hard rating, shown as a coloured chip on the card
+- **Install it on the phone**: it opens full screen like an app, and the last library
+  listing stays readable when the network drops
 - Progress bar for the visitor's own Done marks
 - Dark mode follows the phone setting (with a manual toggle)
 
@@ -91,6 +93,56 @@ Notes:
 - `papers.solution_paper_id` still exists for a card-style link (a PDF titled
   `… Solution` uploaded on its own is still auto-linked to the paper of the same name),
   but the app no longer offers a picker for it.
+
+## Install it like an app (PWA)
+
+The site is a proper installable app — `public/manifest.webmanifest`, the icons in
+`public/`, and `public/sw.js`, a service worker with no build step.
+
+**Installing.** On Android / desktop Chrome, an **Install app** card appears under the
+progress bar once the browser offers the prompt (also in the browser's own menu as
+*Install*). On iPhone and iPad there is no prompt, so the card shows the manual route:
+**Share → Add to Home Screen**. Either way it opens without the address bar, keeps its own
+icon, and starts on the same library.
+
+**What works offline**
+
+| Offline | Why |
+| --- | --- |
+| The app opens | the shell (`index.html`, the hashed JS/CSS, icons, fonts) is cached on install |
+| The paper list, folders, year/shift chips | the last listing from Supabase is saved |
+| Search and filters | they run in the page, over the saved list |
+| Opening a PDF | **no** — PDFs live in Google Drive and need a connection |
+
+So the phone can show *what* is in the library on a dead network, and the student opens the
+paper when they are back online. An amber strip says **You are offline** while that is
+happening.
+
+**How it caches.** Pages and the `papers` request are *network first* (4–5 second budget,
+cache as the fallback), so a deploy or an admin edit shows up immediately when online.
+Hashed `/assets/…` files, icons and fonts are *cache first*, because a filename with a hash
+in it can never change. `/api/link-health` is never cached — the checker must be live.
+
+**First-visit warm-up.** Once the worker takes control it asks the page for the exact
+listing request (URL plus the public Supabase key) and saves the answer straight away, so
+one visit online is enough; the student does not have to open the app twice.
+
+**Updates.** A new build is fetched as soon as it is visited; when the new worker takes
+over, a **A new version is ready** bar with a *Refresh* button appears. The cache is
+versioned (`pyq-shell-v1`, …) and older versions are deleted on activate — bump `VERSION`
+in `public/sw.js` when you change the cache strategy itself.
+
+**Testing it.** `npm run test:sw` runs `scripts/sw-test.mjs`: it loads the real `sw.js`
+against a fake Cache API and network and checks the promises above (offline boot, saved
+listing, warmed install, live API, cache cleanup). No browser needed.
+
+**In development** the worker is not registered (it would cache the dev server's modules and
+confuse the next deploy). Use `npm run build && npm run preview` to try install and offline.
+
+**Limits worth knowing.** Signed-in Done ticks, notes and practice scores come from
+Supabase, so offline they fall back to the device copy until the network returns (nothing is
+lost — the account rows are untouched). A PDF that a student has open in Drive keeps working
+only as far as Drive itself does. Clearing site data removes the saved list.
 
 ## Practice and notes
 
@@ -441,6 +493,9 @@ Security model:
 - Very large PDFs can show a Google virus-scan warning before downloading.
 - Practice scores are self-reported. They are a personal record, not an exam result.
 - A practice timer lives on one device and in one tab; clearing site data clears it.
+- Offline, the app shows the saved list and the device copy of progress; PDFs still need
+  Google Drive.
+- The saved list is per browser: installing on a second phone saves its own copy.
 - Notes and attempts only reach the account while signed in — a guest who later signs in
   gets one merge, on that device.
 - Supabase's free tier pauses a project after ~a week without activity.
